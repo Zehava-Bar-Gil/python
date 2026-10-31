@@ -1,0 +1,82 @@
+{% extends "zehava/layout.html" %}
+{% from "zehava/macros.html" import icon, csrf, back_to, action, card_head with context %}
+
+{% block title %}TimeFlow · {{ t.calendar_title }}{% endblock %}
+
+{% block content %}
+<header class="page-head">
+  <h1>{{ icon("calendar", 30) }} {{ t.calendar_title }}</h1>
+  <!-- מצב החיבור: "מסונכרן" מוצג רק אחרי סנכרון שהצליח בפועל -->
+  <p class="sync-status sync-{{ status.state }}">
+    {% if status.state == "synced" %}{{ icon("check", 16) }} {{ t.google_badge.format(time=status.at) }}
+    {% elif status.state == "pending" %}{{ icon("clock", 16) }} {{ t.google_pending }}
+    {% elif status.state == "needs_reconnect" %}{{ icon("unlink", 16) }} {{ t.google_error }}
+    {% else %}{{ icon("calendar", 16) }} {{ t.internal_badge }}{% endif %}
+  </p>
+</header>
+
+<div class="page-grid">
+  <section class="card glass month month-page" aria-labelledby="month-title">
+    <header class="month-head">
+      <a class="icon-btn flip" href="{{ url_for('zehava.calendar', month=prev_month) }}" aria-label="{{ t.prev_month }}" title="{{ t.prev_month }}">{{ icon("prev", 18) }}</a>
+      <h2 id="month-title">{{ month_title }}</h2>
+      <a class="icon-btn flip" href="{{ url_for('zehava.calendar', month=next_month) }}" aria-label="{{ t.next_month }}" title="{{ t.next_month }}">{{ icon("next", 18) }}</a>
+    </header>
+    <div class="month-grid">
+      {% for d in t.weekdays %}<span class="wd" aria-hidden="true">{{ d }}</span>{% endfor %}
+      {% for week in weeks %}{% for cell in week %}
+      {% if cell.day %}
+      {% set this_day = month.replace(day=cell.day) %}
+      <a class="day {% if this_day == today %}today{% endif %} {% if this_day == selected %}selected{% endif %}"
+         href="{{ url_for('zehava.calendar', month=month.strftime('%Y-%m'), day=this_day.isoformat()) }}"
+         aria-label="{{ cell.day }} {{ t.months[month.month - 1] }}{% if cell.marks %} · {{ cell.marks }}{% endif %}"
+         {% if this_day == selected %}aria-current="date"{% endif %}>
+        {{ cell.day }}{% if cell.marks %}<span class="dot" aria-hidden="true"></span>{% endif %}
+      </a>
+      {% else %}<span class="day empty-day" aria-hidden="true"></span>{% endif %}
+      {% endfor %}{% endfor %}
+    </div>
+  </section>
+
+  <div class="stack">
+    <section class="card glass" aria-labelledby="agenda-title">
+      {% call card_head("today", t.agenda, id="agenda-title") %}
+        <span class="count">{{ selected.day }} {{ t.months[selected.month - 1] }}</span>
+      {% endcall %}
+      <ul class="agenda">
+        {% for item in agenda %}
+        <li class="agenda-item tag-line-{{ item.tag or ('google' if item.kind == 'google' else 'none') }} {% if item.done %}done{% endif %}">
+          <small>{{ item.time }}{% if item.kind == "google" %} · {{ t.from_google }}{% endif %}</small>
+          <span dir="auto">{{ item.title }}</span>
+          {% if item.kind == "google" %}
+            {% if item.linked %}<small class="muted">{{ t.event_linked }}</small>
+            {% else %}{{ action(url_for('zehava.event_to_task', event_id=item.id), t.event_to_task, "chip") }}{% endif %}
+          {% endif %}
+        </li>
+        {% else %}
+        <li class="muted small">{{ t.agenda_empty }}</li>
+        {% endfor %}
+      </ul>
+      <a class="text-link" href="{{ url_for('zehava.tasks') }}">{{ icon("plus", 15) }} {{ t.first_task }}</a>
+    </section>
+
+    <section class="card glass" aria-labelledby="google-title">
+      {% call card_head("calendar", t.google_settings, id="google-title") %}{% endcall %}
+      {% if status.state == "not_configured" %}
+        <p class="muted small">{{ t.not_configured }}</p>
+      {% elif status.state == "internal" %}
+        <a class="btn btn-primary" href="{{ url_for('zehava.calendar_connect') }}">{{ icon("calendar", 16) }} {{ t.connect_google }}</a>
+      {% else %}
+        <div class="choice-row">
+          {% if status.state == "needs_reconnect" %}
+          <a class="btn btn-primary" href="{{ url_for('zehava.calendar_connect') }}">{{ icon("refresh", 16) }} {{ t.connect_google }}</a>
+          {% else %}
+          {{ action(url_for('zehava.calendar_sync'), t.sync_now, "btn btn-primary", "refresh") }}
+          {% endif %}
+          {{ action(url_for('zehava.calendar_disconnect'), t.disconnect, "btn btn-ghost", "unlink") }}
+        </div>
+      {% endif %}
+    </section>
+  </div>
+</div>
+{% endblock %}

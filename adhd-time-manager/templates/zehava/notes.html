@@ -1,0 +1,84 @@
+{% extends "zehava/layout.html" %}
+{% from "zehava/macros.html" import icon, csrf, back_to, action, confirm_delete, card_head with context %}
+
+{% block title %}TimeFlow · {{ t.notes_title }}{% endblock %}
+
+{% macro color_picker(selected="yellow", prefix="new") %}
+<fieldset class="swatches">
+  <legend class="sr-only">{{ t.note_color }}</legend>
+  {% for color in colors %}
+  <label class="swatch swatch-{{ color }}">
+    <input type="radio" name="color" value="{{ color }}" {% if color == selected %}checked{% endif %}>
+    <span></span><span class="sr-only">{{ t.colors[color] }}</span>
+  </label>
+  {% endfor %}
+</fieldset>
+{% endmacro %}
+
+{% block content %}
+<header class="page-head">
+  <h1>{{ icon("notes", 30) }} {{ t.notes_title }}</h1>
+  <p>{{ t.note_placeholder }}</p>
+</header>
+
+<!-- כתיבה מהירה -->
+<section class="card glass" aria-labelledby="note-add-title">
+  {% call card_head("plus", t.add, id="note-add-title") %}{% endcall %}
+  <form class="form-grid add-note" action="{{ url_for('zehava.note_add') }}" method="post">
+    {{ csrf() }}{{ back_to() }}
+    <label class="sr-only" for="note-text">{{ t.note_placeholder }}</label>
+    <textarea id="note-text" name="text" rows="2" maxlength="500" dir="auto" placeholder="{{ t.note_placeholder }}" required></textarea>
+    <div class="add-row">
+      {{ color_picker() }}
+      <label class="sr-only" for="note-tag">{{ t.note_tag }}</label>
+      <input id="note-tag" class="tag-input" type="text" name="tag" maxlength="30" dir="auto" placeholder="{{ t.note_tag }} ({{ t.optional }})" list="note-tags">
+      <datalist id="note-tags">{% for tag in note_tags %}<option value="{{ tag }}">{% endfor %}</datalist>
+      <button type="submit" class="btn btn-primary">{{ icon("plus", 16) }} {{ t.save }}</button>
+    </div>
+  </form>
+</section>
+
+{% if note_tags %}
+<nav class="chips chips-page" aria-label="{{ t.note_tag }}">
+  <a class="chip {% if not tag_filter %}active{% endif %}" href="{{ url_for('zehava.notes') }}">{{ t.all }}</a>
+  {% for tag in note_tags %}
+  <a class="chip {% if tag_filter == tag %}active{% endif %}" href="{{ url_for('zehava.notes', tag=tag) }}" dir="auto">#{{ tag }}</a>
+  {% endfor %}
+</nav>
+{% endif %}
+
+<div class="notes notes-page">
+  {% for note in notes %}
+  <article class="note note-{{ note.color }}" id="note-{{ note.id }}">
+    <p dir="auto">{{ note.body }}</p>
+    {% if note.tag %}<span class="note-tag" dir="auto">#{{ note.tag }}</span>{% endif %}
+    <div class="note-tools">
+      <a class="note-x" href="{{ url_for('zehava.note_edit', note_id=note.id) }}" aria-label="{{ t.edit }}" title="{{ t.edit }}">{{ icon("edit", 13) }}</a>
+      {{ confirm_delete(url_for('zehava.note_delete', note_id=note.id)) }}
+    </div>
+    <!-- מה עושים עם הפתק: משימה, צעד או Snooze -->
+    <details class="note-move">
+      <summary>{{ t.note_actions }}</summary>
+      <div class="note-move-box">
+        {{ action(url_for('zehava.note_to_task', note_id=note.id), t.note_to_task, "btn btn-soft", "todo") }}
+        {{ action(url_for('zehava.note_to_snooze', note_id=note.id), t.note_to_snooze, "btn btn-soft", "snooze") }}
+        {% if task_choices %}
+        <form class="move-step" action="{{ url_for('zehava.note_to_step', note_id=note.id) }}" method="post">
+          {{ csrf() }}{{ back_to() }}
+          <label for="step-target-{{ note.id }}">{{ t.note_to_step }}</label>
+          <div class="add-row">
+            <select id="step-target-{{ note.id }}" name="task_id" required>
+              {% for task in task_choices %}<option value="{{ task.id }}">{{ task.title | truncate(40) }}</option>{% endfor %}
+            </select>
+            <button type="submit" class="icon-btn" aria-label="{{ t.add }}" title="{{ t.add }}">{{ icon("steps", 16) }}</button>
+          </div>
+        </form>
+        {% endif %}
+      </div>
+    </details>
+  </article>
+  {% else %}
+  <p class="empty glass">{{ t.notes_empty }}</p>
+  {% endfor %}
+</div>
+{% endblock %}

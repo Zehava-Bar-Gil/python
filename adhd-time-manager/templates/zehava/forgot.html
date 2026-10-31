@@ -1,0 +1,19 @@
+{% extends "zehava/auth.html" %}
+
+{% block title %}TimeFlow · {{ t.forgot_title }}{% endblock %}
+
+{% block card %}
+<h1 id="auth-title">{{ t.forgot_title }}</h1>
+{% if sent %}
+<p class="form-ok" role="status">{{ t.forgot_sent }}{% if dev_mail %} <small>{{ t.outbox_note }}</small>{% endif %}</p>
+{% else %}
+<p class="muted">{{ t.forgot_text }}</p>
+<form class="login-form" action="{{ url_for('zehava.forgot') }}" method="post">
+  {{ csrf() }}
+  <label for="email">{{ t.email }}</label>
+  <input id="email" type="email" name="email" maxlength="254" autocomplete="email" required autofocus>
+  <button type="submit" class="btn btn-primary">{{ t.forgot_button }}</button>
+</form>
+{% endif %}
+<p class="auth-links"><a class="lang-link" href="{{ url_for('zehava.login') }}">{{ t.login_link }}</a></p>
+{% endblock %}

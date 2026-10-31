@@ -1,0 +1,36 @@
+{% extends "zehava/layout.html" %}
+{% from "zehava/macros.html" import icon, csrf, card_head with context %}
+
+{% block title %}TimeFlow · {{ t.edit_note }}{% endblock %}
+
+{% block content %}
+<header class="page-head">
+  <h1>{{ icon("edit", 30) }} {{ t.edit_note }}</h1>
+</header>
+
+<section class="card glass narrow">
+  <form class="form-grid" action="{{ url_for('zehava.note_edit', note_id=note.id) }}" method="post">
+    {{ csrf() }}
+    <div class="note note-{{ note.color }} note-editor">
+      <label class="sr-only" for="note-body">{{ t.note_placeholder }}</label>
+      <textarea id="note-body" name="text" rows="5" maxlength="500" dir="auto" required>{{ note.body }}</textarea>
+    </div>
+    <fieldset class="swatches">
+      <legend>{{ t.note_color }}</legend>
+      {% for color in colors %}
+      <label class="swatch swatch-{{ color }}">
+        <input type="radio" name="color" value="{{ color }}" {% if color == note.color %}checked{% endif %}>
+        <span></span><span class="sr-only">{{ t.colors[color] }}</span>
+      </label>
+      {% endfor %}
+    </fieldset>
+    <label class="field"><span>{{ t.note_tag }} <small>({{ t.optional }})</small></span>
+      <input type="text" name="tag" maxlength="30" dir="auto" value="{{ note.tag }}">
+    </label>
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary">{{ icon("check", 16) }} {{ t.save }}</button>
+      <a class="btn btn-ghost" href="{{ url_for('zehava.notes') }}#note-{{ note.id }}">{{ t.cancel }}</a>
+    </div>
+  </form>
+</section>
+{% endblock %}

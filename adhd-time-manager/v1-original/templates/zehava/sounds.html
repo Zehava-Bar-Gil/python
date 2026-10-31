@@ -1,0 +1,51 @@
+{% extends "zehava/base.html" %}
+{% from "zehava/macros.html" import icon with context %}
+
+{% block title %}TimeFlow · {{ t.sounds }}{% endblock %}
+{% block body_class %}sounds-page{% endblock %}
+
+{% block body %}
+<!-- הנגן נפתח בלשונית משלו, כדי שהצליל ימשיך בזמן שעובדים בלוח -->
+<main class="sounds-wrap">
+  <header class="sounds-head">
+    <span class="sounds-icon">{{ icon("headphones", 30) }}</span>
+    <div>
+      <h1>{{ t.sounds }}</h1>
+      <p>{{ t.sounds_title }}</p>
+    </div>
+  </header>
+  <p class="sounds-sub">{{ t.sounds_sub }}</p>
+
+  <div class="sound-grid">
+    {% for key, space in spaces.items() %}
+    {% set v = votes[key] %}
+    <section class="card glass sound-card sound-{{ key }}">
+      <div class="sound-art" aria-hidden="true"><span></span><span></span><span></span></div>
+      <header class="sound-title">
+        <h2>{{ space[0] }}</h2>
+        {% if favorite == key %}<span class="fav">★ {{ t.favorite }}</span>{% endif %}
+      </header>
+      <p class="muted">{{ t["sound_" ~ key] }}</p>
+      <audio controls loop preload="none">
+        <source src="{{ url_for('static', filename='sounds/' ~ space[1] ~ '.ogg') }}" type="audio/ogg; codecs=opus">
+        <source src="{{ url_for('static', filename='sounds/' ~ space[1] ~ '.mp3') }}" type="audio/mpeg">
+      </audio>
+      <!-- "עזר לי": השרת עונה 204, אז הדף לא נטען מחדש והצליל ממשיך -->
+      <div class="vote">
+        <form action="{{ url_for('zehava_sound_vote', space=key, answer='yes') }}" method="post">
+          <button type="submit" class="vote-btn">{{ t.helped }}</button>
+        </form>
+        <form action="{{ url_for('zehava_sound_vote', space=key, answer='no') }}" method="post">
+          <button type="submit" class="vote-btn">{{ t.not_helped }}</button>
+        </form>
+        {% if v.yes + v.no %}<small class="muted">{{ t.helped_stats.format(yes=v.yes, total=v.yes + v.no) }}</small>{% endif %}
+      </div>
+    </section>
+    {% endfor %}
+  </div>
+
+  <p class="sounds-tip">{{ t.sounds_tip }}</p>
+  <p class="sounds-note">{{ t.sounds_note }}</p>
+  <a class="pill" href="{{ url_for('zehava') }}">{{ t.back_to_board }}</a>
+</main>
+{% endblock %}

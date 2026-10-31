@@ -1,0 +1,19 @@
+{% extends "zehava/base.html" %}
+{% from "zehava/macros.html" import icon, csrf, back_to, flashes with context %}
+
+{# דפי חשבון: כרטיס זכוכית אחד על רקע ההר #}
+{% block body %}
+<main class="login" id="content" tabindex="-1">
+  <section class="glass login-card" aria-labelledby="auth-title">
+    <svg class="logo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="{{ icons.mountain }}"/>
+    </svg>
+    {{ flashes() }}
+    {% block card %}{% endblock %}
+    <form class="inline-form" action="{{ url_for('zehava.lang', code=t.other_lang) }}" method="post">
+      {{ csrf() }}{{ back_to() }}
+      <button type="submit" class="lang-link" lang="{{ t.other_lang }}">{{ t.switch }}</button>
+    </form>
+  </section>
+</main>
+{% endblock %}

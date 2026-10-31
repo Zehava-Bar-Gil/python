@@ -1,0 +1,1366 @@
+/* =========================================================
+   TimeFlow · העיצוב של זהבה
+   רקע חי בשכבות (הר, ערפל, כדור פורח), כרטיסי זכוכית,
+   ושביל התקדמות עם אבני דרך עד הפסגה.
+   ========================================================= */
+
+/* ---------- 1. צבעים ומשתנים ---------- */
+:root {
+  /* הפלטה של זהבה */
+  --sky: #8DB9DC;
+  --mist: #DCEAF4;
+  --sunset: #F4D7C1;
+  --forest: #456B68;
+  --cloud: #FFFFFF;
+
+  /* גוונים משלימים */
+  --deep: #35658f;          /* כחול עמוק לכפתורים ולוי */
+  --ink: #1f2d3a;           /* טקסט ראשי */
+  --ink-soft: #5d6d7c;      /* טקסט משני */
+  --line: rgba(31, 45, 58, 0.08);
+  --coral: #ef8a6f;         /* טבעת העגבנייה */
+  --gold: #f6c58f;
+  --baby-pink: #f9dbe4;
+
+  --radius: 22px;
+  --nav-h: 72px;
+  --side-w: 156px;
+  --shadow: 0 12px 32px rgba(31, 45, 58, 0.14);
+
+  /* גודל תמונת הרקע: תמיד מכסה את הרוחב, והפסגה נשארת למעלה */
+  --sw: max(100vw, 160vh);
+  --sh: calc(var(--sw) * 0.5628);
+  --summit-y: 16vh;
+}
+
+* { box-sizing: border-box; }
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: calc(var(--nav-h) + 16px);
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  overflow-x: clip;
+  font-family: "Inter", "Heebo", system-ui, sans-serif;
+  color: var(--ink);
+  /* מתחת לתמונה: המשך רך של שמיים וים עננים */
+  background: linear-gradient(180deg, #6191b9 0%, var(--sky) 30%, var(--sunset) 62%, #d7b2aa 82%, #c69e97 100%) fixed;
+  -webkit-font-smoothing: antialiased;
+}
+
+:lang(he) body, body:lang(he) { font-family: "Heebo", "Inter", system-ui, sans-serif; }
+
+a { color: inherit; text-decoration: none; }
+button, input, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
+.icon { flex: none; display: block; }
+/* טקסט של זהבה יכול להיות בעברית או באנגלית: הכיוון לפי התוכן, היישור לפי הדף */
+[dir="ltr"] :is(.task-text, .agenda-item span, .next-step strong) { text-align: left; }
+[dir="rtl"] :is(.task-text, .agenda-item span, .next-step strong) { text-align: right; }
+
+/* ---------- 2. רקע חי: הר, אבני דרך, ערפל וכדור פורח ---------- */
+.scene {
+  position: fixed;
+  z-index: 0;
+  width: var(--sw);
+  height: var(--sh);
+  top: calc(var(--summit-y) - 0.3634 * var(--sh));
+  left: clamp(calc(100vw - var(--sw)), calc(74vw - 0.7494 * var(--sw)), 0px);
+  pointer-events: none;
+}
+[dir="rtl"] .scene {
+  left: clamp(calc(100vw - var(--sw)), calc(26vw - 0.2506 * var(--sw)), 0px);
+}
+
+.scene-img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 7%, #000 80%, transparent 100%);
+  mask-image: linear-gradient(180deg, transparent 0, #000 7%, #000 80%, transparent 100%);
+}
+/* בעברית ההר עובר לצד שמאל, כמו תמונת מראה */
+[dir="rtl"] .scene-img { transform: scaleX(-1); }
+
+/* אבני הדרך: כל משימה שהושלמה מדליקה עוד נקודה בשביל */
+.milestone {
+  position: absolute;
+  left: var(--x);
+  top: var(--y);
+  width: calc(var(--sw) * 0.0105);
+  aspect-ratio: 1;
+  translate: -50% -50%;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.55);
+  border: 2px solid rgba(255, 255, 255, 0.95);
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.18);
+  transition: background 0.6s, box-shadow 0.6s;
+}
+[dir="rtl"] .milestone { left: calc(100% - var(--x)); }
+
+.ms-1 { --x: 59.69%; --y: 74.39%; }
+.ms-2 { --x: 65.55%; --y: 67.80%; }
+.ms-3 { --x: 70.63%; --y: 58.98%; }
+.ms-4 { --x: 70.69%; --y: 52.50%; }
+.ms-5 { --x: 75.78%; --y: 46.12%; }
+.ms-6 { --x: 74.94%; --y: 36.34%; width: calc(var(--sw) * 0.013); }
+
+.milestone.lit {
+  border-color: #fff;
+  background: radial-gradient(circle, #fff 0 28%, #ffe2b8 55%, #f4a868 100%);
+  box-shadow: 0 0 0 4px rgba(255, 214, 160, 0.45), 0 0 18px 6px rgba(255, 190, 120, 0.75);
+}
+/* הנקודה האחרונה שנדלקה: "את נמצאת כאן" */
+.milestone.lit:not(:has(+ .milestone.lit)) {
+  animation: here 2.6s ease-in-out infinite;
+}
+@keyframes here {
+  50% { box-shadow: 0 0 0 9px rgba(255, 214, 160, 0.25), 0 0 26px 10px rgba(255, 190, 120, 0.85); }
+}
+
+/* תוויות קטנות לאורך השביל */
+.trail-label {
+  position: absolute;
+  left: var(--x);
+  top: var(--y);
+  translate: calc(-100% - 20px) -50%;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 13px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #fff;
+  white-space: nowrap;
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  text-shadow: 0 1px 6px rgba(20, 40, 60, 0.35);
+}
+[dir="rtl"] .trail-label { left: calc(100% - var(--x)); translate: 20px -50%; }
+.tl-steps { --x: 59.69%; --y: 74.39%; translate: 20px -50%; }
+[dir="rtl"] .tl-steps { translate: calc(-100% - 20px) -50%; }
+.tl-progress { --x: 70.69%; --y: 52.50%; }
+.tl-goal { --x: 74.94%; --y: 36.34%; max-width: 240px; overflow: hidden; text-overflow: ellipsis; }
+
+/* ערפל ועננים שזזים לאט */
+.mist {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  overflow: hidden;
+  pointer-events: none;
+}
+.mist-layer, .wisp {
+  position: absolute;
+  will-change: transform;
+}
+.mist-layer {
+  left: -30vw;
+  width: 160vw;
+  height: 46vh;
+  background:
+    radial-gradient(ellipse 22% 42% at 12% 58%, rgba(255, 255, 255, 0.6), transparent 70%),
+    radial-gradient(ellipse 28% 48% at 44% 52%, rgba(255, 238, 230, 0.55), transparent 70%),
+    radial-gradient(ellipse 20% 40% at 72% 60%, rgba(255, 255, 255, 0.5), transparent 70%),
+    radial-gradient(ellipse 24% 44% at 94% 55%, rgba(255, 232, 222, 0.5), transparent 70%);
+  filter: blur(10px);
+}
+.m1 { bottom: -14vh; opacity: 0.75; animation: drift 95s ease-in-out infinite alternate; }
+.m2 { bottom: 6vh; height: 34vh; opacity: 0.45; animation: drift 130s ease-in-out infinite alternate-reverse; }
+.m3 { bottom: 24vh; height: 24vh; opacity: 0.3; animation: drift 170s ease-in-out infinite alternate; }
+
+.wisp {
+  width: 36vw;
+  height: 10vh;
+  background:
+    radial-gradient(ellipse 40% 50% at 30% 55%, rgba(255, 255, 255, 0.55), transparent 70%),
+    radial-gradient(ellipse 35% 45% at 65% 45%, rgba(255, 255, 255, 0.45), transparent 70%);
+  filter: blur(6px);
+}
+.w1 { top: 24vh; left: -10vw; opacity: 0.55; animation: drift-far 140s linear infinite alternate; }
+.w2 { top: 37vh; left: 30vw; opacity: 0.4; animation: drift-far 180s linear infinite alternate-reverse; }
+
+@keyframes drift { to { transform: translateX(-26vw); } }
+@keyframes drift-far { to { transform: translateX(55vw); } }
+
+/* הכדור הפורח: מתנדנד בעדינות ונודד לאט בשמיים */
+.balloon {
+  position: fixed;
+  z-index: 2;
+  top: 11vh;
+  inset-inline-start: 50vw;
+  width: clamp(58px, 6vw, 108px);
+  pointer-events: none;
+  filter: drop-shadow(0 14px 18px rgba(40, 50, 70, 0.2));
+  transform-origin: 50% 10%;
+  animation: float 8s ease-in-out infinite alternate, wander 64s ease-in-out infinite alternate;
+}
+@keyframes float {
+  from { transform: translateY(0) rotate(-1.4deg); }
+  to { transform: translateY(-16px) rotate(1.4deg); }
+}
+@keyframes wander {
+  0% { translate: 0 0; }
+  50% { translate: 3vw -1.5vh; }
+  100% { translate: -3.5vw 1vh; }
+}
+
+/* הכדור הפורח בלוח: עולה בשביל עם כל משימה שהושלמה */
+.journey {
+  position: absolute;
+  z-index: 1;
+  left: 49%;
+  top: var(--to);
+  width: max(50px, calc(var(--sw) * 0.054));
+  translate: -50% -100%;
+  animation: climb 3s cubic-bezier(0.45, 0.05, 0.3, 1) both;
+}
+[dir="rtl"] .journey { left: 51%; }
+.journey img {
+  display: block;
+  width: 100%;
+  filter: drop-shadow(0 12px 16px rgba(40, 50, 70, 0.22));
+  transform-origin: 50% 10%;
+  animation: float 8s ease-in-out infinite alternate;
+}
+@keyframes climb { from { top: var(--from); } }
+
+/* ---------- 3. זכוכית ---------- */
+.glass {
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.74), rgba(236, 243, 250, 0.58));
+  border: 1px solid rgba(255, 255, 255, 0.75);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow), inset 0 1px 0 rgba(255, 255, 255, 0.85);
+  -webkit-backdrop-filter: blur(18px) saturate(150%);
+  backdrop-filter: blur(18px) saturate(150%);
+}
+
+/* ---------- 4. תפריט עליון ---------- */
+.top-nav {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  isolation: isolate;
+  height: var(--nav-h);
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  padding-inline: 28px;
+  color: #fff;
+}
+/* הזכוכית של התפריט יושבת בשכבה נפרדת, כדי שבטלפון התפריט יוכל לרדת למטה */
+.top-nav::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(180deg, rgba(36, 64, 94, 0.5), rgba(36, 64, 94, 0.26));
+  border-bottom: 1px solid rgba(255, 255, 255, 0.22);
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
+  backdrop-filter: blur(16px) saturate(140%);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: none;
+}
+.brand strong { display: block; font-size: 21px; font-weight: 600; letter-spacing: -0.01em; }
+.brand small { display: block; font-size: 12.5px; opacity: 0.85; }
+
+.top-nav nav { flex: 1; min-width: 0; }
+.nav-links {
+  display: flex;
+  justify-content: center;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.nav-links a {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+  opacity: 0.88;
+  transition: background 0.25s, opacity 0.25s;
+}
+.nav-links a:hover { background: rgba(255, 255, 255, 0.14); opacity: 1; }
+.nav-links a::after {
+  content: "";
+  position: absolute;
+  inset-inline: 14px;
+  bottom: -13px;
+  height: 3px;
+  border-radius: 3px;
+  background: var(--sunset);
+  opacity: 0;
+  transition: opacity 0.25s;
+}
+/* הקישור הפעיל: לפי החלק שנבחר, ובהתחלה רשימת המטלות */
+body:not(:has(section:target)) .nav-links li:first-child a,
+body:has(#todo:target) .nav-links a[href="#todo"],
+body:has(#notes:target) .nav-links a[href="#notes"],
+body:has(#timer:target) .nav-links a[href="#timer"],
+body:has(#snooze:target) .nav-links a[href="#snooze"],
+body:has(#calendar:target) .nav-links a[href="#calendar"] {
+  opacity: 1;
+  font-weight: 600;
+}
+body:not(:has(section:target)) .nav-links li:first-child a::after,
+body:has(#todo:target) .nav-links a[href="#todo"]::after,
+body:has(#notes:target) .nav-links a[href="#notes"]::after,
+body:has(#timer:target) .nav-links a[href="#timer"]::after,
+body:has(#snooze:target) .nav-links a[href="#snooze"]::after,
+body:has(#calendar:target) .nav-links a[href="#calendar"]::after { opacity: 1; }
+
+.nav-user {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: none;
+}
+.avatar {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  font-weight: 600;
+  color: #fff;
+  background: linear-gradient(135deg, #f2b79a, var(--sky));
+  border: 2px solid rgba(255, 255, 255, 0.85);
+  box-shadow: 0 4px 12px rgba(20, 40, 60, 0.2);
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 500;
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  background: rgba(255, 255, 255, 0.18);
+  transition: background 0.25s;
+}
+.pill:hover { background: rgba(255, 255, 255, 0.32); }
+
+/* ---------- 5. סרגל צד ---------- */
+.side {
+  position: fixed;
+  z-index: 10;
+  top: var(--nav-h);
+  bottom: 0;
+  inset-inline-start: 0;
+  width: var(--side-w);
+  display: flex;
+  flex-direction: column;
+  padding: 28px 12px 24px;
+  color: #fff;
+  background: linear-gradient(180deg, rgba(30, 55, 82, 0.46), rgba(30, 55, 82, 0.3));
+  border-inline-end: 1px solid rgba(255, 255, 255, 0.2);
+  border-start-end-radius: 30px;
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
+  backdrop-filter: blur(16px) saturate(140%);
+}
+.side ul { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.side a {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 14px;
+  border-radius: 14px;
+  font-size: 14px;
+  font-weight: 500;
+  opacity: 0.88;
+  border-inline-start: 3px solid transparent;
+  transition: background 0.25s, opacity 0.25s;
+}
+.side a:hover { background: rgba(255, 255, 255, 0.12); opacity: 1; }
+body:not(:has(section:target)) .side li:first-child a,
+body:has(#todo:target) .side a[href="#todo"],
+body:has(#calendar:target) .side a[href="#calendar"],
+body:has(#progress:target) .side a[href="#progress"],
+body:has(#notes:target) .side a[href="#notes"],
+body:has(#settings:target) .side a[href="#settings"] {
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.2);
+  border-inline-start-color: var(--sunset);
+}
+.side-quote {
+  margin: auto 6px 0;
+  font-size: 13px;
+  line-height: 1.5;
+  opacity: 0.85;
+}
+.side-quote .icon { margin-bottom: 8px; opacity: 0.8; }
+
+/* ---------- 6. תוכן ראשי ---------- */
+.main {
+  position: relative;
+  z-index: 3;
+  margin-inline-start: var(--side-w);
+  padding: 0 28px 48px;
+}
+
+.hero {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 24px;
+  /* הלוח מתחיל מתחת לנקודה הראשונה בשביל, כך שכל אבני הדרך גלויות */
+  min-height: min(calc(var(--summit-y) + 0.3805 * var(--sh) + 28px - var(--nav-h)), 64vh);
+  padding-top: 6vh;
+}
+.greeting { color: #fff; text-shadow: 0 2px 18px rgba(20, 40, 60, 0.35); }
+.greeting h1 {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 0;
+  font-size: clamp(26px, 2.5vw, 38px);
+  font-weight: 600;
+  letter-spacing: -0.015em;
+}
+.greeting h1 .icon { color: var(--gold); filter: drop-shadow(0 0 10px rgba(246, 197, 143, 0.7)); }
+.greeting p { margin: 10px 0 0; font-size: clamp(16px, 1.3vw, 19px); opacity: 0.95; }
+
+/* היעד הגדול (הפסגה): אפשר לשנות אותו בכל רגע */
+.goal {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+  flex: none;
+  width: min(300px, calc(25vw - 56px));
+  margin-top: -3vh;
+  padding: 14px 16px;
+  color: #fff;
+  border-radius: var(--radius);
+  background: linear-gradient(160deg, rgba(36, 64, 94, 0.36), rgba(36, 64, 94, 0.2));
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  box-shadow: 0 10px 30px rgba(20, 40, 60, 0.15);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  backdrop-filter: blur(14px) saturate(140%);
+  text-shadow: 0 1px 6px rgba(20, 40, 60, 0.25);
+}
+.goal-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.goal label { display: flex; align-items: center; gap: 6px; font-size: 12.5px; opacity: 0.95; }
+.goal-percent { font-size: 20px; font-weight: 600; }
+.goal-row { display: flex; align-items: center; gap: 8px; }
+.goal input[type="text"] {
+  flex: 1;
+  width: auto;
+  min-width: 0;
+  padding: 2px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #fff;
+  background: none;
+  border: 0;
+  border-radius: 0;
+  border-bottom: 1px dashed rgba(255, 255, 255, 0.55);
+  box-shadow: none;
+}
+.goal input[type="text"]:focus { background: none; box-shadow: none; border-bottom: 1px solid #fff; }
+.goal input::placeholder { color: rgba(255, 255, 255, 0.75); }
+.goal .pill { padding: 4px 11px; font-size: 12px; color: #fff; }
+.goal .bar { background: rgba(20, 40, 60, 0.22); }
+.goal .bar span { background: linear-gradient(90deg, var(--sunset), #fff); }
+
+/* ---------- 7. הלוח: ארבעה טורים ---------- */
+.board {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) repeat(3, minmax(0, 1fr));
+  gap: 18px;
+  align-items: start;
+}
+.col { display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; }
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 20px 22px;
+}
+.card-head {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+}
+.card-head h2 { margin: 0; font-size: 17px; font-weight: 600; }
+.card-icon {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  flex: none;
+  border-radius: 11px;
+  color: var(--deep);
+  background: rgba(255, 255, 255, 0.75);
+  box-shadow: 0 2px 6px rgba(31, 45, 58, 0.08);
+}
+.count { margin-inline-start: auto; font-size: 13px; color: var(--ink-soft); }
+.date { margin: -6px 0 0; font-size: 13px; color: var(--ink-soft); }
+.muted { color: var(--ink-soft); }
+.small { margin: 0; font-size: 13px; }
+
+/* פס התקדמות */
+.bar {
+  height: 6px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(31, 45, 58, 0.1);
+}
+.bar span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--forest), #6bb5a2);
+  transition: width 0.8s ease;
+}
+.bar-big { height: 10px; }
+
+/* כפתורים */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 16px;
+  border: 0;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: transform 0.2s, box-shadow 0.2s, background 0.2s;
+}
+.btn-primary {
+  color: #fff;
+  background: linear-gradient(135deg, #4f7b77, var(--forest));
+  box-shadow: 0 6px 16px rgba(69, 107, 104, 0.35);
+}
+.btn-primary:hover { transform: translateY(-1px); box-shadow: 0 9px 20px rgba(69, 107, 104, 0.4); }
+.btn-ghost {
+  white-space: normal;
+  color: var(--deep);
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px dashed rgba(53, 101, 143, 0.35);
+}
+.btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+/* שדות */
+input[type="text"], input[type="time"], select {
+  width: 100%;
+  min-width: 0;
+  padding: 10px 13px;
+  font-size: 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(31, 45, 58, 0.1);
+  background: rgba(255, 255, 255, 0.7);
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+}
+input[type="text"]:focus, input[type="time"]:focus, select:focus {
+  border-color: var(--sky);
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(141, 185, 220, 0.35);
+}
+.add-row { display: flex; gap: 8px; align-items: center; }
+.add-row input[type="time"] { flex: 0 0 auto; width: 108px; }
+
+/* ---------- 8. רשימת המטלות ---------- */
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip {
+  padding: 5px 13px;
+  border-radius: 999px;
+  font-size: 13px;
+  color: var(--ink-soft);
+  transition: background 0.2s, color 0.2s;
+}
+.chip:hover { background: rgba(255, 255, 255, 0.7); color: var(--ink); }
+.chip.active { color: #fff; background: var(--deep); box-shadow: 0 4px 10px rgba(53, 101, 143, 0.3); }
+
+/* הצעד הבא: תמיד ברור מה עושים עכשיו */
+.next-step {
+  display: grid;
+  gap: 2px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: linear-gradient(120deg, rgba(244, 215, 193, 0.85), rgba(220, 234, 244, 0.85));
+  border: 1px solid rgba(255, 255, 255, 0.8);
+}
+.next-step small { font-size: 11.5px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--forest); }
+.next-step strong { font-size: 15px; font-weight: 600; }
+.next-step.done { text-align: center; color: var(--forest); }
+
+.tasks { display: grid; margin: 0; padding: 0; list-style: none; }
+.task {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 6px;
+  border-bottom: 1px solid var(--line);
+  border-radius: 12px;
+  transition: background 0.2s;
+}
+.task:hover { background: rgba(255, 255, 255, 0.55); }
+.task > form { display: contents; }
+
+.check {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border-radius: 50%;
+  font-size: 13px;
+  font-weight: 700;
+  color: transparent;
+  background: rgba(255, 255, 255, 0.6);
+  border: 1.6px solid #9fb3c4;
+  transition: all 0.2s;
+}
+.check:hover { border-color: var(--deep); color: rgba(53, 101, 143, 0.45); }
+.task.done .check { color: #fff; background: var(--deep); border-color: var(--deep); box-shadow: 0 3px 8px rgba(53, 101, 143, 0.35); }
+
+.task-body { display: grid; gap: 2px; min-width: 0; }
+.task-text { font-size: 15px; font-weight: 500; overflow-wrap: anywhere; }
+.task-body small { font-size: 12.5px; color: var(--ink-soft); }
+.task.done .task-text { color: var(--ink-soft); text-decoration: line-through; text-decoration-color: rgba(31, 45, 58, 0.35); }
+
+.remove {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  font-size: 12px;
+  color: var(--ink-soft);
+  background: transparent;
+  opacity: 0.5;
+  transition: all 0.2s;
+}
+.task:hover .remove, .remove:focus-visible { opacity: 1; }
+.remove:hover { color: #c0567a; background: var(--baby-pink); }
+
+.empty { display: grid; gap: 4px; padding: 22px 6px; text-align: center; color: var(--ink-soft); }
+.empty strong { color: var(--ink); }
+
+.add-task { display: grid; gap: 8px; padding-top: 4px; }
+
+/* תגיות צבעוניות לפי קטגוריה */
+.tag { padding: 3px 11px; border-radius: 999px; font-size: 12px; font-weight: 500; white-space: nowrap; }
+.tag-work { color: #3d6a9a; background: #dfe9f7; }
+.tag-study { color: #7656b8; background: #ece4fa; }
+.tag-personal { color: #b5653f; background: #fbe3d6; }
+.tag-health { color: #3f7a68; background: #dcefe6; }
+.tag-home { color: #a8742a; background: #fdeccf; }
+.tag-planning { color: #2f7f8a; background: #d9f0f3; }
+
+/* מצב מיקוד ונגן: שני כפתורים בולטים מתחת לברכה */
+.hero-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; text-shadow: none; }
+.btn-focus {
+  padding: 12px 20px;
+  color: var(--forest);
+  background: linear-gradient(135deg, #fff, var(--sunset));
+  box-shadow: 0 10px 24px rgba(20, 40, 60, 0.25);
+}
+.btn-focus:hover { transform: translateY(-1px); box-shadow: 0 14px 28px rgba(20, 40, 60, 0.3); }
+.btn-glass {
+  padding: 12px 18px;
+  color: #fff;
+  background: linear-gradient(160deg, rgba(36, 64, 94, 0.42), rgba(36, 64, 94, 0.26));
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+}
+.btn-glass:hover { background: linear-gradient(160deg, rgba(36, 64, 94, 0.55), rgba(36, 64, 94, 0.36)); }
+.btn-wide { width: 100%; }
+
+.next-step .tiny { font-size: 13.5px; color: var(--ink-soft); }
+.focus-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  justify-self: start;
+  margin-top: 4px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--forest);
+  background: rgba(255, 255, 255, 0.7);
+  transition: background 0.2s;
+}
+.focus-link:hover { background: #fff; }
+
+/* למידה עדינה: הצעה רכה, לא אזהרה */
+.hint {
+  grid-column: 1 / -1;
+  margin: -2px 0 0;
+  padding: 7px 12px;
+  border-radius: 10px;
+  font-size: 12.5px;
+  color: #8a5a32;
+  background: rgba(244, 215, 193, 0.6);
+}
+
+/* צעדים קטנים בתוך משימה */
+.steps { grid-column: 1 / -1; margin-inline-start: 36px; }
+.steps summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 12.5px;
+  color: var(--ink-soft);
+  cursor: pointer;
+  list-style: none;
+  transition: background 0.2s, color 0.2s;
+}
+.steps summary::-webkit-details-marker { display: none; }
+.steps summary:hover { color: var(--ink); background: rgba(255, 255, 255, 0.7); }
+.steps[open] summary { color: var(--deep); }
+.steps[open] { display: grid; gap: 8px; padding-bottom: 4px; }
+.step-list { display: grid; gap: 2px; margin: 0; padding: 0; list-style: none; }
+.step {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 6px;
+  border-radius: 10px;
+  font-size: 14px;
+}
+.step:hover { background: rgba(255, 255, 255, 0.55); }
+.step form { display: contents; }
+.step-check {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  color: transparent;
+  background: rgba(255, 255, 255, 0.7);
+  border: 1.5px solid #9fb3c4;
+}
+.step-check:hover { border-color: var(--forest); color: rgba(69, 107, 104, 0.5); }
+.step.done .step-check { color: #fff; background: var(--forest); border-color: var(--forest); }
+.step.done span { color: var(--ink-soft); text-decoration: line-through; }
+.step .remove { width: 22px; height: 22px; font-size: 11px; }
+[dir="ltr"] .step span { text-align: left; }
+[dir="rtl"] .step span { text-align: right; }
+.add-step { display: flex; gap: 6px; }
+.add-step input[type="text"] { padding: 8px 11px; font-size: 13.5px; }
+.icon-btn {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 0;
+  border-radius: 11px;
+  color: var(--deep);
+  background: rgba(255, 255, 255, 0.8);
+  box-shadow: 0 2px 6px rgba(31, 45, 58, 0.1);
+  transition: background 0.2s;
+}
+.icon-btn:hover { background: #fff; }
+
+/* הסיכום היומי */
+.sum-block { display: grid; gap: 4px; }
+.sum-block h3 { display: flex; align-items: center; gap: 7px; margin: 0; font-size: 13.5px; font-weight: 600; color: var(--forest); }
+.sum-block ul { display: grid; gap: 3px; margin: 0; padding: 0; list-style: none; }
+.sum-block li, .sum-block p { margin: 0; font-size: 14px; }
+.sum-block li::before { content: "• "; color: var(--ink-soft); }
+.sum-block small { color: var(--ink-soft); }
+.mail-note { margin: 0; padding: 8px 12px; border-radius: 10px; font-size: 13px; }
+.mail-note.ok { color: var(--forest); background: rgba(220, 239, 230, 0.9); }
+.mail-note.err { color: #a2463b; background: rgba(249, 219, 228, 0.9); }
+
+/* ---------- 9. לוח חודשי ---------- */
+.month-head h2 { margin: 0; font-size: 17px; font-weight: 600; text-align: center; }
+.month-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px 2px;
+  text-align: center;
+}
+.wd { padding-bottom: 6px; font-size: 11.5px; color: var(--ink-soft); }
+.day {
+  display: grid;
+  place-items: center;
+  width: min(30px, 100%);
+  aspect-ratio: 1;
+  margin: auto;
+  border-radius: 50%;
+  font-size: 13px;
+}
+.day.today {
+  color: #fff;
+  font-weight: 600;
+  background: linear-gradient(135deg, #5b8fc2, var(--deep));
+  box-shadow: 0 4px 12px rgba(53, 101, 143, 0.45);
+}
+
+/* ---------- 10. טיימר עגבנייה ---------- */
+@property --sec { syntax: "<integer>"; inherits: false; initial-value: 0; }
+@property --mm { syntax: "<integer>"; inherits: false; initial-value: 0; }
+@property --ss { syntax: "<integer>"; inherits: false; initial-value: 0; }
+
+.timer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.ring { position: relative; width: 132px; flex: none; }
+.ring svg { display: block; width: 100%; transform: rotate(-90deg); }
+.ring circle { fill: none; stroke-width: 8; }
+.ring-track { stroke: rgba(31, 45, 58, 0.08); }
+.ring-progress {
+  stroke: var(--coral);
+  stroke-linecap: round;
+  stroke-dasharray: 339.3;
+  stroke-dashoffset: calc(var(--from) * 1px);
+  filter: drop-shadow(0 0 4px rgba(239, 138, 111, 0.45));
+}
+.ring-progress.running { animation: ring var(--dur) linear forwards; }
+@keyframes ring {
+  from { stroke-dashoffset: calc(var(--from) * 1px); }
+  to { stroke-dashoffset: 339.3px; }
+}
+.ring-text {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  text-align: center;
+}
+.ring-text small { font-size: 12px; color: var(--ink-soft); }
+
+/* הספירה לאחור (ובמצב גמיש: ספירה קדימה) רצה ב-CSS בלבד, לפי הזמן שחישב השרת */
+.countdown { --sec: var(--remaining); }
+.countup { --sec: var(--elapsed); }
+.countdown, .countup {
+  --mm: calc((var(--sec) - 30) / 60);
+  --ss: calc(var(--sec) - var(--mm) * 60);
+  counter-reset: mm var(--mm) ss var(--ss);
+  font-size: 28px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  direction: ltr;
+}
+.countdown::after, .countup::after { content: counter(mm, decimal-leading-zero) ":" counter(ss, decimal-leading-zero); }
+.countdown.running { animation: countdown calc(var(--remaining) * 1s) linear forwards; }
+@keyframes countdown { to { --sec: 0; } }
+.countup.running { animation: countup 360000s linear forwards; }
+@keyframes countup { to { --sec: calc(var(--elapsed) + 360000); } }
+
+.timer-controls { display: grid; justify-items: center; gap: 12px; }
+.timer-controls form { margin: 0; }
+.round-btn {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  color: var(--deep);
+  background: rgba(255, 255, 255, 0.85);
+  box-shadow: 0 6px 16px rgba(31, 45, 58, 0.15);
+  transition: transform 0.2s;
+}
+.round-btn:hover { transform: scale(1.06); }
+.round-btn.play { color: #fff; background: linear-gradient(135deg, #4f7b77, var(--forest)); box-shadow: 0 8px 20px rgba(69, 107, 104, 0.4); }
+.round-btn.play .icon { margin-left: 3px; }
+.ends { font-size: 12px; color: var(--ink-soft); }
+
+#timer { container-type: inline-size; }
+@container (max-width: 340px) {
+  .timer { flex-direction: column; gap: 14px; }
+  .ring { width: 124px; }
+  .timer-controls { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 10px 14px; }
+  .round-btn { width: 46px; height: 46px; }
+}
+
+.options { display: flex; align-items: center; gap: 4px; }
+.opt {
+  min-width: 36px;
+  padding: 5px 8px;
+  border: 0;
+  border-radius: 999px;
+  font-size: 13px;
+  color: var(--ink-soft);
+  background: transparent;
+}
+.opt:hover { background: rgba(255, 255, 255, 0.7); }
+.opt.active { color: #fff; font-weight: 600; background: var(--deep); }
+.options small { font-size: 12px; color: var(--ink-soft); }
+
+/* ---------- 11. התקדמות ---------- */
+.stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; text-align: center; }
+.stats div { display: grid; gap: 2px; padding: 10px 4px; border-radius: 14px; background: rgba(255, 255, 255, 0.5); }
+.stats strong { font-size: 18px; font-weight: 600; color: var(--forest); }
+.stats small { font-size: 11.5px; color: var(--ink-soft); }
+
+/* ---------- 12. פתקיות בכתב יד ---------- */
+.notes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.note {
+  position: relative;
+  min-height: 112px;
+  padding: 14px 14px 18px;
+  border-radius: 4px 4px 14px 4px;
+  box-shadow: 0 8px 16px rgba(31, 45, 58, 0.12), inset 0 -10px 18px rgba(0, 0, 0, 0.03);
+  transform: rotate(-1.6deg);
+  transition: transform 0.3s, box-shadow 0.3s;
+}
+.note:nth-child(even) { transform: rotate(1.4deg); }
+.note:hover { transform: rotate(0) translateY(-3px); box-shadow: 0 14px 24px rgba(31, 45, 58, 0.16); }
+.note p {
+  margin: 0;
+  font-family: "Caveat", "Amatic SC", cursive;
+  font-size: 22px;
+  line-height: 1.15;
+  color: #2c3440;
+  overflow-wrap: anywhere;
+}
+:lang(he) .note p { font-size: 25px; font-weight: 700; }
+.note-yellow { background: linear-gradient(160deg, #fdf0b5, #f9e08f); }
+.note-pink { background: linear-gradient(160deg, #fcdbe2, #f7c1cf); }
+.note-green { background: linear-gradient(160deg, #dff0c8, #c6e3a8); }
+.note-blue { background: linear-gradient(160deg, #d8e9f9, #bcd8f2); }
+.note form { margin: 0; }
+.note-x {
+  position: absolute;
+  top: 6px;
+  inset-inline-end: 6px;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  font-size: 11px;
+  color: rgba(44, 52, 64, 0.6);
+  background: rgba(255, 255, 255, 0.5);
+  opacity: 0;
+  transition: opacity 0.2s, background 0.2s;
+}
+.note:hover .note-x, .note-x:focus-visible { opacity: 1; }
+.note-x:hover { background: #fff; color: #c0567a; }
+.notes > .muted { grid-column: 1 / -1; }
+
+#notes { container-type: inline-size; }
+@container (max-width: 210px) {
+  .notes { gap: 10px; }
+  .note { min-height: 96px; padding: 10px 10px 14px; }
+  .note p { font-size: 18px; }
+  :lang(he) .note p { font-size: 21px; }
+}
+
+.add-note { display: grid; gap: 8px; }
+.swatches { display: flex; gap: 8px; flex: 1; }
+.swatch input { position: absolute; opacity: 0; pointer-events: none; }
+.swatch span {
+  display: block;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  box-shadow: 0 2px 6px rgba(31, 45, 58, 0.15);
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+.swatch input:checked + span { transform: scale(1.15); box-shadow: 0 0 0 2px var(--deep); }
+.swatch input:focus-visible + span { outline: 2px solid var(--deep); outline-offset: 2px; }
+.swatch-yellow span { background: #f9e08f; }
+.swatch-pink span { background: #f7c1cf; }
+.swatch-green span { background: #c6e3a8; }
+.swatch-blue span { background: #bcd8f2; }
+
+/* ---------- 13. נודניק ---------- */
+.snooze-task { margin: 0; font-size: 14px; }
+.snooze-list { display: grid; gap: 4px; margin: 0; padding: 0; list-style: none; }
+.snooze-list form { margin: 0; }
+.snooze-list button {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 12px;
+  font-size: 14px;
+  text-align: start;
+  color: var(--ink);
+  background: transparent;
+  transition: background 0.2s;
+}
+.snooze-list button .icon { color: var(--ink-soft); }
+.snooze-list li:first-child button { background: rgba(141, 185, 220, 0.22); }
+.snooze-list button:hover { background: rgba(141, 185, 220, 0.32); }
+.snooze-list button:disabled { opacity: 0.5; cursor: not-allowed; background: transparent; }
+
+/* ---------- 14. יומן ---------- */
+.agenda { display: grid; margin: 0; padding: 0; list-style: none; }
+.agenda-item {
+  position: relative;
+  display: grid;
+  gap: 2px;
+  padding: 10px 0;
+  padding-inline-start: 18px;
+  border-bottom: 1px solid var(--line);
+}
+.agenda-item::before {
+  content: "";
+  position: absolute;
+  inset-inline-start: 0;
+  top: 10px;
+  bottom: 10px;
+  width: 6px;
+  border-radius: 6px;
+  background: var(--bar, #b9c6d3);
+}
+.agenda-item small { font-size: 12.5px; color: var(--ink-soft); }
+.agenda-item span { font-size: 15px; font-weight: 500; }
+.agenda-item.done span { color: var(--ink-soft); text-decoration: line-through; }
+.tag-line-work { --bar: #5b9bd5; }
+.tag-line-study { --bar: #9a7be0; }
+.tag-line-personal { --bar: #f08aa0; }
+.tag-line-health { --bar: #4fae84; }
+.tag-line-home { --bar: #f0a64a; }
+.tag-line-planning { --bar: #3fb5c4; }
+
+/* משפט השראה על רקע הפסגה */
+.quote-card {
+  min-height: 140px;
+  justify-content: center;
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.4);
+  background:
+    linear-gradient(160deg, rgba(25, 42, 58, 0.25), rgba(25, 42, 58, 0.6)),
+    url("../img/sky-mountain.jpg") 76% 38% / 300% auto;
+}
+.handwriting {
+  margin: 0;
+  font-family: "Caveat", "Amatic SC", cursive;
+  font-size: 32px;
+  line-height: 1.1;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+}
+:lang(he) .handwriting { font-size: 36px; font-weight: 700; }
+
+/* הגדרות */
+.settings { display: flex; flex-wrap: wrap; gap: 8px; }
+.settings .pill { color: var(--ink); border-color: rgba(31, 45, 58, 0.12); background: rgba(255, 255, 255, 0.6); }
+.settings .pill:hover { background: #fff; }
+
+/* ---------- 15. דף הכניסה ---------- */
+.login {
+  position: relative;
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  min-height: 100vh;
+  padding: 24px 16px;
+}
+.login-card {
+  display: grid;
+  gap: 14px;
+  width: min(400px, 100%);
+  padding: 34px 30px;
+  text-align: center;
+}
+.login-card .logo { width: 56px; height: 56px; margin: 0 auto; color: var(--deep); }
+.login-card h1 { margin: 0; font-size: 26px; font-weight: 600; }
+.login-card .muted { margin: -6px 0 6px; }
+.login-form { display: grid; gap: 10px; text-align: start; }
+.login-form label { font-size: 14px; font-weight: 500; }
+.login-form .btn { width: 100%; padding: 12px; }
+.btn-google { width: 100%; color: var(--ink-soft); background: rgba(255, 255, 255, 0.7); border: 1px solid rgba(31, 45, 58, 0.1); }
+.lang-link { font-size: 14px; color: var(--deep); }
+.lang-link:hover { text-decoration: underline; }
+
+/* ---------- 15ב. מצב מיקוד: נא לא להפריע ---------- */
+.focus-page .mist-layer { animation-duration: 300s; }
+.focus-page .wisp { animation-duration: 400s; }
+.focus-page .balloon { inset-inline-start: 12vw; top: 18vh; opacity: 0.7; animation-duration: 12s, 120s; }
+.sounds-page .balloon { inset-inline-start: 5vw; top: 34vh; }
+.focus-veil {
+  position: fixed;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background: radial-gradient(ellipse at 50% 45%, rgba(20, 35, 50, 0.12), rgba(20, 35, 50, 0.45));
+}
+.focus-wrap {
+  position: relative;
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  min-height: 100vh;
+  padding: 32px 16px;
+}
+.focus-card {
+  display: grid;
+  justify-items: center;
+  gap: 16px;
+  width: min(620px, 100%);
+  padding: 26px 30px 24px;
+  text-align: center;
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.8), rgba(236, 243, 250, 0.68));
+}
+.focus-head { display: flex; justify-content: space-between; align-items: center; width: 100%; }
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 13px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--forest);
+  background: rgba(220, 234, 244, 0.9);
+}
+.session-done {
+  width: 100%;
+  margin: 0;
+  padding: 12px 16px;
+  border-radius: 14px;
+  font-weight: 600;
+  color: var(--forest);
+  background: linear-gradient(120deg, rgba(220, 239, 230, 0.95), rgba(244, 215, 193, 0.9));
+}
+.focus-task { margin: 4px 0 0; font-size: clamp(24px, 3.2vw, 32px); font-weight: 600; line-height: 1.25; }
+.focus-meta { display: flex; align-items: center; justify-content: center; gap: 10px; margin: -6px 0 0; color: var(--ink-soft); font-size: 14px; }
+.ring-big { width: 200px; }
+.ring-big .countdown, .ring-big .countup { font-size: 40px; }
+.ring-breathe { stroke: var(--sky); animation: breathe 6s ease-in-out infinite; }
+@keyframes breathe { 50% { stroke: #b9d6ec; stroke-width: 10; } }
+.focus-ask { margin: 6px 0 0; font-weight: 600; }
+.focus-options { display: grid; justify-items: center; gap: 12px; }
+.focus-times { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+.focus-options form { margin: 0; }
+.btn-small-start {
+  padding: 12px 22px;
+  color: #fff;
+  background: linear-gradient(135deg, #4f7b77, var(--forest));
+  box-shadow: 0 8px 20px rgba(69, 107, 104, 0.35);
+}
+.btn-small-start:hover { transform: translateY(-1px); }
+.opt-big {
+  min-width: 70px;
+  padding: 10px 14px;
+  border: 1px solid rgba(53, 101, 143, 0.18);
+  border-radius: 14px;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--deep);
+  background: rgba(255, 255, 255, 0.75);
+  transition: background 0.2s, transform 0.2s;
+}
+.opt-big small { font-size: 12px; font-weight: 500; }
+.opt-big:hover { background: #fff; transform: translateY(-1px); }
+.focus-steps { display: grid; gap: 8px; width: 100%; text-align: start; }
+.focus-steps h2 { display: flex; align-items: center; gap: 7px; margin: 0; font-size: 15px; color: var(--forest); }
+.focus-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 4px; }
+.focus-actions form { margin: 0; }
+.leave-note { margin: -4px 0 0; font-size: 12.5px; color: var(--ink-soft); }
+.focus-empty { margin: 10px 0; font-size: 17px; }
+
+/* ---------- 15ג. Soundscape ---------- */
+.sounds-wrap {
+  position: relative;
+  z-index: 3;
+  display: grid;
+  gap: 16px;
+  width: min(980px, 100%);
+  margin: 0 auto;
+  padding: 40px 16px 48px;
+  color: #fff;
+}
+.sounds-head { display: flex; align-items: center; gap: 16px; text-shadow: 0 2px 14px rgba(20, 40, 60, 0.35); }
+.sounds-icon {
+  display: grid;
+  place-items: center;
+  width: 60px;
+  height: 60px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+}
+.sounds-head h1 { margin: 0; font-size: clamp(28px, 3vw, 38px); font-weight: 600; }
+.sounds-head p { margin: 2px 0 0; font-size: 17px; opacity: 0.95; }
+.sounds-sub, .sounds-tip, .sounds-note { margin: 0; text-shadow: 0 1px 8px rgba(20, 40, 60, 0.4); }
+.sounds-note { font-size: 13.5px; opacity: 0.9; }
+.sound-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.sound-card { color: var(--ink); overflow: hidden; }
+.sound-card .muted { margin: -6px 0 0; }
+.sound-title { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.sound-title h2 { margin: 0; font-size: 20px; font-weight: 600; }
+.fav { padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; color: #a8742a; background: #fdeccf; }
+.sound-card audio { width: 100%; }
+
+/* ציור קטן לכל מרחב: גלים שזזים לאט */
+.sound-art {
+  position: relative;
+  height: 70px;
+  margin: -20px -22px 0;
+  overflow: hidden;
+  background: var(--art, linear-gradient(120deg, var(--sky), var(--mist)));
+}
+.sound-art span {
+  position: absolute;
+  left: -50%;
+  width: 200%;
+  height: 60px;
+  border-radius: 45%;
+  background: rgba(255, 255, 255, 0.28);
+  animation: swell 14s ease-in-out infinite alternate;
+}
+.sound-art span:nth-child(1) { top: 30px; }
+.sound-art span:nth-child(2) { top: 40px; opacity: 0.7; animation-duration: 19s; animation-direction: alternate-reverse; }
+.sound-art span:nth-child(3) { top: 50px; opacity: 0.5; animation-duration: 25s; }
+@keyframes swell { to { transform: translateX(18%) rotate(2deg); } }
+.sound-deep { --art: linear-gradient(120deg, #2f4f6f, #35658f 60%, #5b8fc2); }
+.sound-calm { --art: linear-gradient(120deg, #4f9a96, #8DB9DC 70%, #DCEAF4); }
+.sound-study { --art: linear-gradient(120deg, #8b79c9, #b9a7e6 60%, #DCEAF4); }
+.sound-reading { --art: linear-gradient(120deg, #e3a688, #F4D7C1 60%, #fbeee4); }
+
+.vote { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.vote form { margin: 0; }
+.vote-btn {
+  padding: 6px 14px;
+  border: 1px solid rgba(31, 45, 58, 0.12);
+  border-radius: 999px;
+  font-size: 13px;
+  background: rgba(255, 255, 255, 0.7);
+  transition: background 0.2s;
+}
+.vote-btn:hover { background: #fff; }
+/* אחרי לחיצה: סימן קטן שהתשובה נשמרה (בלי לטעון את הדף) */
+.vote-btn:focus { outline: none; color: var(--forest); background: #dcefe6; border-color: rgba(69, 107, 104, 0.3); }
+.vote-btn:focus::after { content: " ✓"; }
+.sounds-wrap > .pill { justify-self: start; color: #fff; }
+
+/* ---------- 16. כניסה עדינה של הכרטיסים בגלילה ---------- */
+@supports (animation-timeline: view()) {
+  .card {
+    animation: rise linear both;
+    animation-timeline: view();
+    animation-range: entry 0% entry 60%;
+  }
+  @keyframes rise {
+    from { opacity: 0.2; transform: translateY(26px); }
+  }
+}
+
+/* ---------- 17. התאמה למסכים ---------- */
+@media (max-width: 1360px) {
+  .nav-links a { padding: 10px 10px; gap: 7px; font-size: 13.5px; }
+  .top-nav { gap: 18px; padding-inline: 20px; }
+}
+
+@media (max-width: 1240px) {
+  .board { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .hero { flex-direction: column; justify-content: flex-start; gap: 18px; }
+  .goal { width: min(320px, 100%); margin-top: 0; }
+  .nav-links a span { display: none; }
+  .nav-links a { padding: 10px 12px; }
+}
+
+/* טאבלט וטלפון: התפריט יורד לתחתית המסך, כמו אפליקציה */
+@media (max-width: 1000px) {
+  :root { --nav-h: 64px; --side-w: 0px; }
+  .side { display: none; }
+  .main { padding: 0 16px 120px; }
+  .top-nav { padding-inline: 16px; }
+  .brand small { display: none; }
+
+  .top-nav nav {
+    position: fixed;
+    z-index: 30;
+    left: 12px;
+    right: 12px;
+    bottom: 12px;
+    border-radius: 22px;
+    background: rgba(30, 55, 82, 0.58);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    box-shadow: 0 10px 30px rgba(20, 40, 60, 0.25);
+    -webkit-backdrop-filter: blur(18px) saturate(140%);
+    backdrop-filter: blur(18px) saturate(140%);
+  }
+  .nav-links { justify-content: space-around; gap: 0; padding: 6px; }
+  .nav-links li { flex: 1; }
+  .nav-links a {
+    flex-direction: column;
+    gap: 4px;
+    padding: 8px 2px;
+    font-size: 11px;
+    text-align: center;
+  }
+  .nav-links a span { display: block; white-space: normal; line-height: 1.15; }
+  .nav-links a::after { bottom: 2px; inset-inline: 30%; }
+
+  :root { --summit-y: 19vh; }
+  .hero { padding-top: 4vh; }
+}
+
+/* טלפון: ברכה ויעד למעלה, ההר והשביל מתחתם, ואז הלוח */
+@media (max-width: 760px) {
+  :root { --sw: 230vw; --summit-y: max(43vh, 360px); }
+  .board { grid-template-columns: minmax(0, 1fr); }
+  .hero { gap: 14px; padding-top: 18px; }
+  .goal { width: 100%; }
+  .trail-label { display: none; }
+  .balloon { top: calc(var(--summit-y) + 2vh); inset-inline-start: 6vw; width: 52px; }
+  .card { padding: 18px 16px; }
+  .steps { margin-inline-start: 0; }
+  .dnd-label { display: none; }
+  .hero-actions { flex-wrap: nowrap; }
+  .hero-actions .btn { flex: 1; padding: 11px 12px; }
+  .sound-grid { grid-template-columns: minmax(0, 1fr); }
+  .sound-art { margin: -18px -16px 0; }
+  .focus-card { padding: 22px 18px; }
+}
+
+/* ---------- 18. תנועה: אפשר לעצור (נגישות ו-ADHD) ---------- */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .balloon, .mist-layer, .wisp, .milestone, .card, .journey, .journey img, .ring-breathe, .sound-art span { animation: none !important; }
+}
+.no-motion { scroll-behavior: auto; }
+.no-motion .balloon,
+.no-motion .mist-layer,
+.no-motion .wisp,
+.no-motion .milestone,
+.no-motion .card,
+.no-motion .journey,
+.no-motion .journey img,
+.no-motion .ring-breathe,
+.no-motion .sound-art span { animation: none !important; }

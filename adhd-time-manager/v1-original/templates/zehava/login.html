@@ -1,0 +1,24 @@
+{% extends "zehava/base.html" %}
+
+{% block title %}TimeFlow · {{ t.login_button }}{% endblock %}
+
+{% block body %}
+<main class="login">
+  <section class="glass login-card">
+    <svg class="logo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M2 20l7-12 4 6 3-4 6 10z M9 8l2 3"/>
+    </svg>
+    <h1>{{ t.login_title }}</h1>
+    <p class="muted">{{ t.tagline }}</p>
+
+    <form class="login-form" action="{{ url_for('zehava_login') }}" method="post">
+      <label for="name">{{ t.login_text }}</label>
+      <input id="name" type="text" name="name" placeholder="{{ t.login_placeholder }}" maxlength="30" required autofocus>
+      <button type="submit" class="btn btn-primary">{{ t.login_button }}</button>
+    </form>
+
+    <button class="btn btn-google" type="button" disabled>{{ t.login_google }}</button>
+    <a class="lang-link" href="{{ url_for('zehava_lang', code=t.other_lang, next=url_for('zehava_login')) }}">{{ t.switch }}</a>
+  </section>
+</main>
+{% endblock %}

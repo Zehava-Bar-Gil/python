@@ -1,0 +1,28 @@
+{% extends "zehava/layout.html" %}
+{% from "zehava/macros.html" import icon, csrf, card_head with context %}
+
+{% block title %}TimeFlow · {{ t.consent_title }}{% endblock %}
+
+{% block content %}
+<header class="page-head">
+  <h1>{{ icon("calendar", 30) }} {{ t.consent_title }}</h1>
+</header>
+
+<!-- הסכמה מפורשת לפני המעבר ל-Google: מה נקרא, מה נשמר, ואיך מנתקים -->
+<section class="card glass narrow" aria-labelledby="consent-head">
+  {% call card_head("lock", t.consent_title, id="consent-head") %}{% endcall %}
+  <ul class="consent-list">
+    <li>{{ icon("eye", 16) }} <span>{{ t.consent_read }}</span></li>
+    <li>{{ icon("lock", 16) }} <span>{{ t.consent_store }}</span></li>
+    <li>{{ icon("unlink", 16) }} <span>{{ t.consent_revoke }}</span></li>
+  </ul>
+  <form class="form-grid" action="{{ url_for('zehava.calendar_connect') }}" method="post">
+    {{ csrf() }}
+    <label class="check-row"><input type="checkbox" name="consent" value="1" required> <span>{{ t.consent_check }}</span></label>
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary">{{ t.consent_button }}</button>
+      <a class="btn btn-ghost" href="{{ url_for('zehava.calendar') }}">{{ t.cancel }}</a>
+    </div>
+  </form>
+</section>
+{% endblock %}

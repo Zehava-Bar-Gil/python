@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="{{ lang }}" dir="{{ t.dir }}">
+<head><meta charset="utf-8"></head>
+<!-- מייל: העיצוב כתוב בתוך התגיות, כי תוכנות מייל לא קוראות קובצי CSS. אין תמונות חיצוניות ואין מעקב -->
+<body style="margin:0;padding:24px;background:#DCEAF4;font-family:Arial,Helvetica,sans-serif;color:#1f2d3a;">
+  <div style="max-width:520px;margin:0 auto;background:#ffffff;border-radius:18px;padding:26px;text-align:{{ 'right' if t.dir == 'rtl' else 'left' }};">
+    <p style="margin:0;color:#456B68;font-weight:bold;letter-spacing:0.5px;">TimeFlow ⛰</p>
+    <h1 style="margin:6px 0 2px;font-size:22px;">{{ t.mail_hello.format(name=name) }}</h1>
+    <p style="margin:0 0 18px;color:#5d6d7c;">{{ today_label }} · {{ t.mail_intro }}</p>
+
+    {% if summary.done or summary.sessions %}
+    <h2 style="margin:18px 0 6px;font-size:16px;color:#456B68;">✓ {{ t.mail_done }} ({{ summary.done | length }})</h2>
+    {% for title in summary.done %}<p style="margin:4px 0;">• {{ title }}</p>{% else %}<p style="margin:4px 0;color:#5d6d7c;">{{ t.summary_none }}</p>{% endfor %}
+
+    <p style="margin:18px 0 0;padding:12px 14px;background:#F4D7C1;border-radius:12px;">
+      {{ t.mail_sessions }}: <strong>{{ summary.sessions }}</strong><br>
+      {{ t.mail_focus_time }}: <strong>{{ summary.focus_minutes }} {{ t.min }}</strong>
+      {% if summary.stations %}<br>{{ t.mail_milestones }}: <strong>{{ summary.stations }}</strong> 🎈{% endif %}
+    </p>
+    {% else %}
+    <p style="margin:12px 0;">{{ t.mail_nothing }}</p>
+    {% endif %}
+
+    <p style="margin:22px 0 6px;font-weight:bold;">{{ t.pulse_q }}</p>
+    <p style="margin:0;"><a href="{{ pulse_link }}" style="display:inline-block;padding:10px 16px;border-radius:12px;background:#456B68;color:#ffffff;text-decoration:none;font-weight:bold;">{{ t.mail_pulse_cta }}</a></p>
+
+    <p style="margin:22px 0 0;color:#456B68;">{{ t.mail_closing }}</p>
+    <p style="margin:22px 0 0;font-size:12px;color:#5d6d7c;"><a href="{{ unsubscribe_link }}" style="color:#5d6d7c;">{{ t.mail_unsubscribe }}</a></p>
+  </div>
+</body>
+</html>

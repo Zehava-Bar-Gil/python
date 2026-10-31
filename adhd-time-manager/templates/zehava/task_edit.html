@@ -1,0 +1,45 @@
+{% extends "zehava/layout.html" %}
+{% from "zehava/macros.html" import icon, csrf, card_head with context %}
+
+{% block title %}TimeFlow · {{ t.edit_task }}{% endblock %}
+
+{% block content %}
+<header class="page-head">
+  <h1>{{ icon("edit", 30) }} {{ t.edit_task }}</h1>
+</header>
+
+<section class="card glass narrow" aria-labelledby="edit-title">
+  {% call card_head("todo", task.title, id="edit-title") %}{% endcall %}
+  <form class="form-grid" action="{{ url_for('zehava.edit_task', task_id=task.id) }}" method="post">
+    {{ csrf() }}
+    <label class="field">
+      <span>{{ t.task_title }}</span>
+      <input type="text" name="title" maxlength="200" dir="auto" value="{{ task.title }}" required>
+    </label>
+    <div class="field-row">
+      <label class="field"><span>{{ t.due_date }} <small>({{ t.optional }})</small></span><input type="date" name="due_date" value="{{ task.due_date or '' }}"></label>
+      <label class="field"><span>{{ t.due_time }} <small>({{ t.optional }})</small></span><input type="time" name="due_time" value="{{ task.due_time or '' }}"></label>
+    </div>
+    <div class="field-row">
+      <label class="field"><span>{{ t.tag }}</span>
+        <select name="tag">
+          <option value="">{{ t.no_tag }}</option>
+          {% for key, names in tags.items() %}<option value="{{ key }}" {% if task.tag == key %}selected{% endif %}>{{ names[lang_index] }}</option>{% endfor %}
+        </select>
+      </label>
+      <label class="field"><span>{{ t.priority }}</span>
+        <select name="priority">
+          {% for p in priorities %}<option value="{{ p }}" {% if p == task.priority %}selected{% endif %}>{{ t['priority_' ~ p] }}</option>{% endfor %}
+        </select>
+      </label>
+    </div>
+    <label class="field"><span>{{ t.details }} <small>({{ t.optional }})</small></span>
+      <textarea name="details" rows="4" maxlength="1000" dir="auto">{{ task.details }}</textarea>
+    </label>
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary">{{ icon("check", 16) }} {{ t.save }}</button>
+      <a class="btn btn-ghost" href="{{ url_for('zehava.tasks') }}#task-{{ task.id }}">{{ t.cancel }}</a>
+    </div>
+  </form>
+</section>
+{% endblock %}

@@ -1,0 +1,84 @@
+{% extends "zehava/layout.html" %}
+{% from "zehava/macros.html" import icon, csrf, back_to, action, card_head, timer_ring, timer_controls with context %}
+
+{% block title %}TimeFlow · {{ t.timer_title }}{% endblock %}
+
+{# כשיש שעת סיום: הדף מתרענן לבד כשהזמן נגמר, והסשן נספר בשרת #}
+{% block head %}
+{% if timer.running and not timer.flexible %}<meta http-equiv="refresh" content="{{ timer.remaining + 1 }}">{% endif %}
+{% endblock %}
+
+{% block content %}
+<header class="page-head">
+  <h1>{{ icon("tomato", 30) }} {{ t.timer_title }}</h1>
+  <p>{{ t.timer_note }}</p>
+</header>
+
+<div class="page-grid">
+  <section id="timer" class="card glass timer-card" aria-labelledby="timer-title">
+    {% call card_head("timer", t['kind_' ~ timer.kind] if timer.active else t.timer_title, id="timer-title") %}{% endcall %}
+
+    {% if timer.active %}
+    <div class="timer timer-page">
+      {{ timer_ring(timer, big=true) }}
+      <div class="timer-side">
+        <p class="current-task"><small>{{ t.current_task }}</small><strong dir="auto">{{ task.title if task else t.no_task }}</strong></p>
+        {% if timer.planned %}<p class="muted small">{{ t.planned }}: {{ timer.planned // 60 }} {{ t.min }}</p>{% endif %}
+        {{ timer_controls(timer) }}
+        {% if task %}<a class="focus-link" href="{{ url_for('zehava.focus') }}">{{ icon("focus", 15) }} {{ t.focus_mode }}</a>{% endif %}
+      </div>
+    </div>
+
+    {% else %}
+    {% if suggest_break %}
+    <!-- הצעה להפסקה: לא חובה, ואפשר פשוט להמשיך -->
+    <div class="break-offer">
+      <p>{{ t.session_done }}</p>
+      {{ action(url_for('zehava.timer_break', kind=suggest_break.kind), t.take_break.format(n=suggest_break.minutes), "btn btn-primary", "leaf") }}
+    </div>
+    {% endif %}
+
+    <form class="form-grid timer-form" action="{{ url_for('zehava.timer_start') }}" method="post">
+      {{ csrf() }}{{ back_to() }}
+      <fieldset class="seg">
+        <legend>{{ t.length }}</legend>
+        {% for kind in kinds %}
+        <label class="seg-item"><input type="radio" name="kind" value="{{ kind }}" {% if loop.first %}checked{% endif %}><span>{{ t['kind_' ~ kind] }} · {{ defaults[kind] }}</span></label>
+        {% endfor %}
+      </fieldset>
+      <div class="field-row">
+        <label class="field"><span>{{ t.custom_minutes }} ({{ t.kind_focus }})</span>
+          <input type="number" name="minutes" min="1" max="180" value="{{ defaults.focus }}" inputmode="numeric">
+        </label>
+        <label class="field"><span>{{ t.for_task }} <small>({{ t.optional }})</small></span>
+          <select name="task_id">
+            <option value="">{{ t.no_task }}</option>
+            {% for choice in task_choices %}<option value="{{ choice.id }}" {% if choice.id == preselect %}selected{% endif %}>{{ choice.title | truncate(50) }}</option>{% endfor %}
+          </select>
+        </label>
+      </div>
+      <label class="check-row"><input type="checkbox" name="flexible" value="1"> <span>{{ t.flexible }}: {{ t.elapsed }}</span></label>
+      <button type="submit" class="btn btn-primary btn-cta">{{ icon("play", 16) }} {{ t.start }}</button>
+    </form>
+
+    <div class="quick-start" aria-label="{{ t.length }}">
+      {% for m in quick %}
+      {{ action(url_for('zehava.timer_quick', minutes=m), m ~ " " ~ t.min, "opt-big") }}
+      {% endfor %}
+    </div>
+    {% endif %}
+  </section>
+
+  <section class="card glass" aria-labelledby="today-title">
+    {% call card_head("progress_nav", t.today, id="today-title") %}{% endcall %}
+    <div class="stats">
+      <div><strong>{{ stats.completed }}</strong><small>{{ t.sessions_today }}</small></div>
+      <div><strong>{{ stats.focus_seconds // 60 }}</strong><small>{{ t.focused_today }} ({{ t.min }})</small></div>
+      <div><strong>{{ stats.planned_seconds // 60 }}</strong><small>{{ t.planned }} ({{ t.min }})</small></div>
+    </div>
+    <p class="muted small">{{ t.planned_vs_actual_text.format(planned=stats.planned_seconds // 60, actual=stats.focus_seconds // 60) }}</p>
+    <a class="text-link" href="{{ url_for('zehava.sounds') }}" target="_blank" rel="noopener">{{ icon("headphones", 15) }} {{ t.sounds }}<span class="sr-only"> ({{ t.open_sounds }})</span></a>
+    <a class="text-link" href="{{ url_for('zehava.settings') }}#focus">{{ icon("settings", 15) }} {{ t.sec_focus }}</a>
+  </section>
+</div>
+{% endblock %}

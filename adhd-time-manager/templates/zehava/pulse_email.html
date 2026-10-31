@@ -1,0 +1,12 @@
+{% extends "zehava/auth.html" %}
+{% from "zehava/macros.html" import pulse_form with context %}
+
+{% block title %}TimeFlow · {{ t.pulse_title }}{% endblock %}
+
+{# משוב יומי מקישור במייל, בלי צורך להתחבר #}
+{% block card %}
+<h1 id="auth-title">{{ t.pulse_title }} · {{ day.day }} {{ t.months[day.month - 1] }}</h1>
+{% if saved %}<p class="form-ok" role="status">{{ t[saved] }}</p>{% endif %}
+{% if pulse and not pulse.skipped and not saved %}<p class="muted">{{ faces[pulse.rating] }} {{ t.pulse_answered.format(label=t.ratings[pulse.rating]) }}</p>{% endif %}
+{% if not saved %}{{ pulse_form(url_for('zehava.pulse_from_email', token=token), pulse, selected_reasons) }}{% endif %}
+{% endblock %}

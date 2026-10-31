@@ -1,0 +1,17 @@
+{% extends "zehava/auth.html" %}
+
+{% block title %}TimeFlow · {{ t.reset_title }}{% endblock %}
+
+{% block card %}
+<h1 id="auth-title">{{ t.reset_title }}</h1>
+{% if errors %}
+<ul class="form-error" role="alert">{% for key in errors %}<li>{{ t[key] }}</li>{% endfor %}</ul>
+{% endif %}
+<form class="login-form" action="{{ url_for('zehava.reset', token=token) }}" method="post">
+  {{ csrf() }}
+  <label for="password">{{ t.new_password }}</label>
+  <input id="password" type="password" name="password" minlength="8" autocomplete="new-password" aria-describedby="pw-hint" required autofocus>
+  <small id="pw-hint" class="muted">{{ t.password_hint }}</small>
+  <button type="submit" class="btn btn-primary">{{ t.reset_button }}</button>
+</form>
+{% endblock %}

@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="{{ lang }}" dir="{{ t.dir }}" class="{% if not motion %}no-motion{% endif %}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}TimeFlow{% endblock %}</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Heebo:wght@300;400;500;600;700&family=Caveat:wght@500;600&family=Amatic+SC:wght@700&display=swap">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/zehava.css') }}">
+  {% block head %}{% endblock %}
+</head>
+<body class="{% block body_class %}{% endblock %}">
+  <!-- רקע חי בשכבות: תמונה, ערפל שנע, כדור פורח שצף -->
+  <div class="scene" aria-hidden="true">
+    <img class="scene-img" src="{{ url_for('static', filename='img/sky-mountain.jpg') }}" alt="">
+    {% block scene_extra %}{% endblock %}
+  </div>
+  <div class="mist" aria-hidden="true">
+    <span class="mist-layer m1"></span>
+    <span class="mist-layer m2"></span>
+    <span class="mist-layer m3"></span>
+    <span class="wisp w1"></span>
+    <span class="wisp w2"></span>
+  </div>
+  {% block balloon %}
+  <img class="balloon" src="{{ url_for('static', filename='img/balloon.png') }}" alt="" aria-hidden="true">
+  {% endblock %}
+
+  {% block body %}{% endblock %}
+</body>
+</html>

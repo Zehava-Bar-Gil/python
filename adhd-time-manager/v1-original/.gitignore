@@ -1,0 +1,4 @@
+.venv/
+__pycache__/
+# הסיסמה למייל נשארת רק במחשב שלי
+mail_config.json

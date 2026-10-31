@@ -1,0 +1,26 @@
+{% extends "zehava/auth.html" %}
+
+{% block title %}TimeFlow · {{ t.register_title }}{% endblock %}
+
+{% block card %}
+<h1 id="auth-title">{{ t.register_title }}</h1>
+<p class="muted">{{ t.promise }}</p>
+{% if errors %}
+<ul class="form-error" role="alert">{% for key in errors %}<li>{{ t[key] }}</li>{% endfor %}</ul>
+{% endif %}
+<form class="login-form" action="{{ url_for('zehava.register') }}" method="post">
+  {{ csrf() }}
+  <label for="name">{{ t.display_name }}</label>
+  <input id="name" type="text" name="name" value="{{ form.name }}" maxlength="40" dir="auto" autocomplete="nickname" required autofocus>
+  <label for="email">{{ t.email }}</label>
+  <input id="email" type="email" name="email" value="{{ form.email }}" maxlength="254" autocomplete="email" required>
+  <label for="password">{{ t.password }}</label>
+  <input id="password" type="password" name="password" minlength="8" autocomplete="new-password" aria-describedby="pw-hint" required>
+  <small id="pw-hint" class="muted">{{ t.password_hint }}</small>
+  <button type="submit" class="btn btn-primary">{{ t.register_button }}</button>
+</form>
+<p class="auth-links">
+  <span>{{ t.have_account }} <a class="lang-link" href="{{ url_for('zehava.login') }}">{{ t.login_link }}</a></span>
+  <a class="lang-link" href="{{ url_for('zehava.privacy') }}">{{ t.privacy_link }}</a>
+</p>
+{% endblock %}

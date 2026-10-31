@@ -1,0 +1,393 @@
+{% extends "zehava/base.html" %}
+
+{% block title %}TimeFlow{% endblock %}
+
+{# כשהטיימר רץ: הדף מתרענן לבד בדיוק כשהזמן נגמר, והעגבנייה נספרת #}
+{% block head %}
+{% if timer.running %}<meta http-equiv="refresh" content="{{ timer.remaining + 1 }}">{% endif %}
+{% endblock %}
+
+{# האייקונים משותפים לכל הדפים, בקובץ macros.html #}
+{% from "zehava/macros.html" import icon with context %}
+
+{# כותרת של כרטיס: אייקון ושם #}
+{% macro card_head(icon_name, title) %}
+<header class="card-head">
+  <span class="card-icon">{{ icon(icon_name) }}</span>
+  <h2>{{ title }}</h2>
+  {{ caller() if caller }}
+</header>
+{% endmacro %}
+
+{# כאן הכדור הפורח לא מרחף במקום קבוע: הוא טס על השביל #}
+{% block balloon %}{% endblock %}
+
+<!-- אבני הדרך על השביל: נדלקות לפי ההתקדמות -->
+{% block scene_extra %}
+{% for n in range(1, 7) %}
+<span class="milestone ms-{{ n }} {% if n <= lit %}lit{% endif %}"></span>
+{% endfor %}
+<!-- הכדור הפורח עולה לתחנה של המשימה האחרונה שהושלמה -->
+<span class="journey" style="--from: {{ climb_from }}%; --to: {{ climb_to }}%">
+  <img src="{{ url_for('static', filename='img/balloon.png') }}" alt="">
+</span>
+<span class="trail-label tl-steps">{{ icon("clock", 16) }} {{ t.daily_steps }}</span>
+<span class="trail-label tl-progress">{{ icon("progress_nav", 16) }} {{ t.progress }} · {{ percent }}%</span>
+<span class="trail-label tl-goal" dir="auto">{{ icon("mountain", 16) }} {{ goal }}</span>
+{% endblock %}
+
+{% block body %}
+<!-- תפריט עליון: 5 הכלים לניהול זמן -->
+<header class="top-nav">
+  <a class="brand" href="#top">
+    {{ icon("mountain", 34) }}
+    <span>
+      <strong>TimeFlow</strong>
+      <small>{{ t.tagline }}</small>
+    </span>
+  </a>
+  <nav>
+    <ul class="nav-links">
+      {% for key in nav %}
+      <li><a href="#{{ key }}">{{ icon(key) }}<span>{{ t[key] }}</span></a></li>
+      {% endfor %}
+    </ul>
+  </nav>
+  <div class="nav-user">
+    <a class="pill" href="{{ url_for('zehava_lang', code=t.other_lang) }}">{{ t.switch }}</a>
+    <span class="avatar" title="{{ name }}">{{ name[:1] | upper }}</span>
+  </div>
+</header>
+
+<!-- סרגל צד -->
+<aside class="side">
+  <ul>
+    {% for anchor, key in side %}
+    <li><a href="#{{ anchor }}">{{ icon(key) }}<span>{{ t[key] }}</span></a></li>
+    {% endfor %}
+  </ul>
+  <p class="side-quote">{{ icon("mountain", 40) }}<br>{{ t.quote }}</p>
+</aside>
+
+<main class="main" id="top">
+  <!-- ברכה לפי השעה בישראל, ויעד הפסגה -->
+  <section class="hero">
+    <div class="greeting">
+      <h1>{{ icon("sun", 34) }} {{ greeting }}, {{ name }}</h1>
+      <p>{{ t.subtitle }}</p>
+      <!-- מצב מיקוד ונגן הצלילים -->
+      <div class="hero-actions">
+        <a class="btn btn-focus" href="{{ url_for('zehava_focus_page') }}">
+          {{ icon("focus", 18) }}
+          {% if focus.running %}{{ t.focus_mode }}{% if focus.ends_at %} · {{ focus.ends_at }}{% endif %}{% else %}{{ t.focus_mode }}<span class="dnd-label"> · {{ t.dnd }}</span>{% endif %}
+        </a>
+        <a class="btn btn-glass" href="{{ url_for('zehava_sounds') }}" target="_blank" rel="noopener" title="{{ t.open_sounds }}">
+          {{ icon("headphones", 18) }} {{ t.sounds }}
+        </a>
+      </div>
+    </div>
+
+    <form class="goal" action="{{ url_for('zehava_set_goal') }}" method="post">
+      <div class="goal-top">
+        <label for="goal">{{ icon("flag", 16) }} {{ t.goal_label }}</label>
+        <strong class="goal-percent">{{ percent }}%</strong>
+      </div>
+      <div class="goal-row">
+        <input id="goal" type="text" name="goal" dir="auto" value="{{ goal }}" placeholder="{{ t.goal_placeholder }}" maxlength="60">
+        <button type="submit" class="pill">{{ t.save }}</button>
+      </div>
+      <div class="bar"><span style="width: {{ percent }}%"></span></div>
+    </form>
+  </section>
+
+  <div class="board">
+    <!-- טור 1: משימות -->
+    <div class="col">
+      <section id="todo" class="card glass card-tall">
+        {% call card_head("todo", t.tasks_title) %}
+          <span class="count"><span dir="ltr">{{ done_count }} / {{ total }}</span></span>
+        {% endcall %}
+        <p class="date">{{ today_label }}</p>
+        <div class="bar"><span style="width: {{ percent }}%"></span></div>
+
+        <!-- סינון לפי קטגוריה -->
+        <div class="chips">
+          <a class="chip {% if not tag_filter %}active{% endif %}" href="{{ url_for('zehava') }}#todo">{{ t.all }}</a>
+          {% for key, names in tags.items() %}
+          <a class="chip {% if tag_filter == key %}active{% endif %}" href="{{ url_for('zehava', tag=key) }}#todo">{{ names[lang_index] }}</a>
+          {% endfor %}
+        </div>
+
+        <!-- ADHD: הצעד הבא תמיד ראשון וברור -->
+        {% if next_task %}
+        <div class="next-step">
+          <small>{{ t.next_step }}</small>
+          <strong dir="auto">{{ next_task.text }}</strong>
+          {% if tiny_step %}<span class="tiny" dir="auto">{{ t.tiny_step }} {{ tiny_step }}</span>{% endif %}
+          <a class="focus-link" href="{{ url_for('zehava_focus_page', task=next_index) }}">{{ icon("focus", 16) }} {{ t.focus_this }}</a>
+        </div>
+        {% elif total %}
+        <div class="next-step done">
+          <strong>{{ t.all_done }}</strong>
+        </div>
+        {% endif %}
+
+        <ul class="tasks">
+          {% for i, task in tasks %}
+          <li class="task {% if task.done %}done{% endif %}" id="task-{{ i }}">
+            <form action="{{ url_for('zehava_toggle', task_id=i) }}" method="post">
+              <button type="submit" class="check" title="{{ t.mark_done }}">✓</button>
+            </form>
+            <div class="task-body">
+              <span class="task-text" dir="auto">{{ task.text }}</span>
+              {% if task.time %}<small>{{ task.time }}</small>{% endif %}
+            </div>
+            {% if task.tag %}<span class="tag tag-{{ task.tag }}">{{ tags[task.tag][lang_index] }}</span>{% endif %}
+            <form action="{{ url_for('zehava_delete', task_id=i) }}" method="post">
+              <button type="submit" class="remove" title="{{ t.delete }}">✕</button>
+            </form>
+
+            {# למידה עדינה: משימה שנדחתה כמה פעמים מקבלת הצעה לפירוק #}
+            {% set stuck = not task.done and task.snoozed >= snooze_hint_after and not task.steps %}
+            {% if stuck %}<p class="hint">{{ t.snooze_hint.format(n=task.snoozed) }}</p>{% endif %}
+
+            {# צעדים קטנים: נפתח ונסגר בלי JavaScript, בעזרת details #}
+            {% if task.steps or not task.done %}
+            <details class="steps" {% if open_task == i or stuck %}open{% endif %}>
+              <summary>
+                {{ icon("steps", 15) }}
+                {% if task.steps %}{{ t.steps }} · {{ task.steps | selectattr("done") | list | length }}/{{ task.steps | length }}{% else %}{{ t.split_task }}{% endif %}
+              </summary>
+              <ul class="step-list">
+                {% for step in task.steps %}
+                <li class="step {% if step.done %}done{% endif %}">
+                  <form action="{{ url_for('zehava_step_toggle', task_id=i, step_id=loop.index0) }}" method="post">
+                    <button type="submit" class="step-check" title="{{ t.mark_done }}">✓</button>
+                  </form>
+                  <span dir="auto">{{ step.text }}</span>
+                  <form action="{{ url_for('zehava_step_delete', task_id=i, step_id=loop.index0) }}" method="post">
+                    <button type="submit" class="remove" title="{{ t.delete }}">✕</button>
+                  </form>
+                </li>
+                {% endfor %}
+              </ul>
+              {% if not task.done %}
+              <form class="add-step" action="{{ url_for('zehava_step_add', task_id=i) }}" method="post">
+                <input type="text" name="text" placeholder="{{ t.step_placeholder }}" maxlength="80" dir="auto" required>
+                <button type="submit" class="icon-btn" title="{{ t.add }}">{{ icon("plus", 16) }}</button>
+              </form>
+              <a class="focus-link" href="{{ url_for('zehava_focus_page', task=i) }}">{{ icon("focus", 15) }} {{ t.focus_this }}</a>
+              {% endif %}
+            </details>
+            {% endif %}
+          </li>
+          {% else %}
+          <li class="empty">
+            <strong>{{ t.empty_title }}</strong>
+            <span>{{ t.empty_text }}</span>
+          </li>
+          {% endfor %}
+        </ul>
+
+        <form class="add-task" action="{{ url_for('zehava_add') }}" method="post">
+          <input type="text" name="text" placeholder="{{ t.placeholder }}" dir="auto" required>
+          <div class="add-row">
+            <input type="time" name="time" aria-label="time">
+            <select name="tag" aria-label="tag">
+              <option value="">{{ t.no_tag }}</option>
+              {% for key, names in tags.items() %}
+              <option value="{{ key }}">{{ names[lang_index] }}</option>
+              {% endfor %}
+            </select>
+            <button type="submit" class="btn btn-primary">{{ icon("plus", 16) }} {{ t.add }}</button>
+          </div>
+        </form>
+      </section>
+    </div>
+
+    <!-- טור 2: לוח חודשי, טיימר, התקדמות -->
+    <div class="col">
+      <section class="card glass month">
+        <header class="month-head"><h2>{{ month.title }}</h2></header>
+        <div class="month-grid">
+          {% for d in t.weekdays %}<span class="wd">{{ d }}</span>{% endfor %}
+          {% for week in month.weeks %}
+            {% for day in week %}
+            <span class="day {% if day == month.today %}today{% endif %}">{{ day if day else "" }}</span>
+            {% endfor %}
+          {% endfor %}
+        </div>
+      </section>
+
+      <section id="timer" class="card glass">
+        {{ card_head("timer", "🍅 " ~ t.timer) }}
+        <div class="timer">
+          <div class="ring">
+            <svg viewBox="0 0 120 120" aria-hidden="true">
+              <circle class="ring-track" cx="60" cy="60" r="54"/>
+              <circle class="ring-progress {% if timer.running %}running{% endif %}" cx="60" cy="60" r="54"
+                style="--from: {{ ((timer.total - timer.remaining) / timer.total * 339.3) | round(1) }}; --dur: {{ timer.remaining }}s"/>
+            </svg>
+            <div class="ring-text">
+              <span class="countdown {% if timer.running %}running{% endif %}" style="--remaining: {{ timer.remaining }}"></span>
+              <small>{{ t.focus }}</small>
+            </div>
+          </div>
+          <div class="timer-controls">
+            {% if timer.running %}
+            <form action="{{ url_for('zehava_timer_reset') }}" method="post">
+              <button type="submit" class="round-btn" title="{{ t.reset }}">{{ icon("reset", 22) }}</button>
+            </form>
+            <small class="ends">{{ t.ends_at }}{{ timer.ends_at }}</small>
+            {% else %}
+            <form action="{{ url_for('zehava_timer_start') }}" method="post">
+              <button type="submit" class="round-btn play" title="{{ t.start }}">{{ icon("play", 22) }}</button>
+            </form>
+            {% endif %}
+            <div class="options">
+              {% for m in timer_options %}
+              <form action="{{ url_for('zehava_timer_set', minutes=m) }}" method="post">
+                <button type="submit" class="opt {% if m == timer.minutes %}active{% endif %}">{{ m }}</button>
+              </form>
+              {% endfor %}
+              <small>{{ t.min }}</small>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="progress" class="card glass">
+        {{ card_head("mountain", t.progress_title) }}
+        <p class="muted small">{{ done_count }}/{{ total }} {{ t.tasks_done }}</p>
+        <div class="bar bar-big"><span style="width: {{ percent }}%"></span></div>
+        <div class="stats">
+          <div><strong>{{ focused // 60 }}h {{ focused % 60 }}m</strong><small>{{ t.focused_time }}</small></div>
+          <div><strong>{{ pomodoros }}</strong><small>{{ t.pomodoros }}</small></div>
+          <div><strong>{{ percent }}%</strong><small>{{ t.progress }}</small></div>
+        </div>
+      </section>
+    </div>
+
+    <!-- טור 3: פתקיות ונודניק -->
+    <div class="col">
+      <section id="notes" class="card glass">
+        {{ card_head("notes", t.notes) }}
+        <div class="notes">
+          {% for note in notes %}
+          <div class="note note-{{ note.color }}">
+            <p dir="auto">{{ note.text }}</p>
+            <form action="{{ url_for('zehava_note_delete', note_id=loop.index0) }}" method="post">
+              <button type="submit" class="note-x" title="{{ t.delete }}">✕</button>
+            </form>
+          </div>
+          {% else %}
+          <p class="muted small">{{ t.notes_empty }}</p>
+          {% endfor %}
+        </div>
+        <form class="add-note" action="{{ url_for('zehava_note_add') }}" method="post">
+          <input type="text" name="text" placeholder="{{ t.note_placeholder }}" dir="auto" maxlength="120" required>
+          <div class="add-row">
+            <div class="swatches">
+              {% for color in note_colors %}
+              <label class="swatch swatch-{{ color }}">
+                <input type="radio" name="color" value="{{ color }}" {% if loop.first %}checked{% endif %}>
+                <span></span>
+              </label>
+              {% endfor %}
+            </div>
+            <button type="submit" class="btn btn-primary">{{ icon("plus", 16) }} {{ t.add }}</button>
+          </div>
+        </form>
+      </section>
+
+      <section id="snooze" class="card glass">
+        {{ card_head("snooze", t.snooze) }}
+        {% set upcoming = agenda | rejectattr("done") | list %}
+        {% if upcoming %}
+        <p class="snooze-task"><strong dir="auto">{{ upcoming[0].text }}</strong> · {{ upcoming[0].time }}</p>
+        <p class="muted small">{{ t.snooze_for }}</p>
+        {% else %}
+        <p class="muted small">{{ t.snooze_none }}</p>
+        {% endif %}
+        <ul class="snooze-list">
+          {% for m in snooze_options %}
+          <li>
+            <form action="{{ url_for('zehava_snooze', minutes=m) }}" method="post">
+              <button type="submit" {% if not upcoming %}disabled{% endif %}>
+                {{ icon("clock", 18) }}
+                {% if m == 60 %}1 {{ t.hour }}{% else %}{{ m }} {{ t.minutes }}{% endif %}
+              </button>
+            </form>
+          </li>
+          {% endfor %}
+        </ul>
+      </section>
+    </div>
+
+    <!-- טור 4: יומן, משפט השראה והגדרות -->
+    <div class="col">
+      <section id="calendar" class="card glass">
+        {% call card_head("calendar", t.calendar) %}{% endcall %}
+        <p class="date">{{ today_label }}</p>
+        <ul class="agenda">
+          {% for task in agenda %}
+          <li class="agenda-item tag-line-{{ task.tag or 'none' }} {% if task.done %}done{% endif %}">
+            <small>{{ task.time }}</small>
+            <span dir="auto">{{ task.text }}</span>
+          </li>
+          {% else %}
+          <li class="muted small">{{ t.agenda_empty }}</li>
+          {% endfor %}
+        </ul>
+        <button class="btn btn-ghost" type="button" disabled>{{ icon("plus", 16) }} {{ t.connect_google }}</button>
+      </section>
+
+      <!-- הסיכום היומי: מה הושלם, מה נדחה ומה הצעד הבא -->
+      <section id="summary" class="card glass">
+        {{ card_head("mail", t.summary_title) }}
+        <div class="sum-block">
+          <h3>{{ icon("check", 16) }} {{ t.summary_done }} · {{ summary.done | length }}</h3>
+          {% if summary.done %}
+          <ul>{% for text in summary.done[:5] %}<li dir="auto">{{ text }}</li>{% endfor %}</ul>
+          {% else %}<p class="muted small">{{ t.summary_none }}</p>{% endif %}
+        </div>
+        <div class="sum-block">
+          <h3>{{ icon("snooze", 16) }} {{ t.summary_postponed }} · {{ summary.postponed | length }}</h3>
+          {% if summary.postponed %}
+          <ul>{% for task in summary.postponed[:5] %}<li><span dir="auto">{{ task.text }}</span> <small>× {{ task.snoozed }}</small></li>{% endfor %}</ul>
+          {% else %}<p class="muted small">{{ t.summary_none }}</p>{% endif %}
+        </div>
+        <div class="sum-block">
+          <h3>{{ icon("flag", 16) }} {{ t.next_step }}</h3>
+          <p dir="auto">{{ summary.next.text if summary.next else t.all_done }}{% if summary.tiny_step %} → {{ summary.tiny_step }}{% endif %}</p>
+        </div>
+
+        {% if mail_status == "sent" %}<p class="mail-note ok">{{ t.mail_sent }}</p>
+        {% elif mail_status == "error" %}<p class="mail-note err">{{ t.mail_error }}</p>{% endif %}
+        {% if mail_ready %}
+        <form action="{{ url_for('zehava_mail_send') }}" method="post">
+          <button type="submit" class="btn btn-primary btn-wide">{{ icon("mail", 16) }} {{ t.send_mail }}</button>
+        </form>
+        <p class="muted small">{{ t.mail_daily }}{{ mail_daily_at }}</p>
+        {% else %}
+        <button class="btn btn-ghost btn-wide" type="button" disabled>{{ icon("mail", 16) }} {{ t.send_mail }}</button>
+        <p class="muted small">{{ t.mail_setup }}</p>
+        {% endif %}
+      </section>
+
+      <section class="card glass quote-card">
+        <p class="handwriting">{{ t.journey }} ♡</p>
+      </section>
+
+      <section id="settings" class="card glass">
+        {{ card_head("settings", t.settings) }}
+        <div class="settings">
+          <a class="pill" href="{{ url_for('zehava_lang', code=t.other_lang) }}">{{ t.switch }}</a>
+          <a class="pill" href="{{ url_for('zehava_motion', state='on' if not motion else 'off') }}">{{ t.motion_on if not motion else t.motion_off }}</a>
+          <a class="pill" href="{{ url_for('zehava_logout') }}">{{ t.logout }}</a>
+        </div>
+      </section>
+    </div>
+  </div>
+</main>
+{% endblock %}
