@@ -1,0 +1,56 @@
+{% extends "zehava/base.html" %}
+{% from "zehava/macros.html" import icon, csrf with context %}
+
+{% block title %}TimeFlow · {{ t.sounds }}{% endblock %}
+{% block body_class %}sounds-page{% endblock %}
+
+{% block body %}
+<!-- הנגן נפתח בלשונית משלו, כדי שהצליל ימשיך בזמן שעובדים בלוח -->
+<main class="sounds-wrap" id="content" tabindex="-1">
+  <header class="sounds-head">
+    <span class="sounds-icon">{{ icon("headphones", 30) }}</span>
+    <div>
+      <h1>{{ t.sounds }}</h1>
+      <p>{{ t.sounds_title }}</p>
+    </div>
+  </header>
+  <p class="sounds-sub">{{ t.sounds_sub }}</p>
+  {% if settings.sound_pref == "none" %}<p class="sounds-note">{{ t.sound_hint }}</p>{% endif %}
+
+  <div class="sound-grid">
+    {% for key, name in spaces.items() %}
+    {% set v = votes.get(key, {"yes": 0, "no": 0, "total": 0}) %}
+    <section class="card glass sound-card sound-{{ key }}" aria-labelledby="sound-{{ key }}">
+      <div class="sound-art" aria-hidden="true"><span></span><span></span><span></span></div>
+      <header class="sound-title">
+        <h2 id="sound-{{ key }}" lang="en">{{ name }}</h2>
+        {% if favorite == key %}<span class="fav">★ {{ t.favorite }}</span>{% endif %}
+      </header>
+      <p class="muted">{{ t["sound_" ~ key] }}</p>
+      {# הנגן של הדפדפן: Play, Pause, עוצמה והשתקה. הצליל לא מתחיל לבד #}
+      <audio controls loop preload="none" aria-label="{{ name }}">
+        <source src="{{ url_for('static', filename='sounds/' ~ key ~ '.ogg') }}" type="audio/ogg; codecs=opus">
+        <source src="{{ url_for('static', filename='sounds/' ~ key ~ '.mp3') }}" type="audio/mpeg">
+      </audio>
+      <!-- "עזר לי": השרת עונה 204, אז הדף לא נטען מחדש והצליל ממשיך -->
+      <div class="vote">
+        <form action="{{ url_for('zehava.sound_vote', space=key, answer='yes') }}" method="post">
+          {{ csrf() }}
+          <button type="submit" class="vote-btn">{{ t.helped }}</button>
+        </form>
+        <form action="{{ url_for('zehava.sound_vote', space=key, answer='no') }}" method="post">
+          {{ csrf() }}
+          <button type="submit" class="vote-btn">{{ t.not_helped }}</button>
+        </form>
+        {% if v.total %}<small class="muted">{{ t.helped_stats.format(yes=v.yes, total=v.total) }}</small>{% endif %}
+      </div>
+    </section>
+    {% endfor %}
+  </div>
+
+  <p class="sounds-tip">{{ t.sounds_tip }}</p>
+  <p class="sounds-note">{{ t.sounds_note }}</p>
+  <p class="sounds-note">{{ t.sounds_license }}</p>
+  <a class="pill" href="{{ url_for('zehava.home') }}">{{ t.back_to_board }}</a>
+</main>
+{% endblock %}

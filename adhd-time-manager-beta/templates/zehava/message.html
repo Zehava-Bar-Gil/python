@@ -1,0 +1,12 @@
+{% extends "zehava/auth.html" %}
+
+{% block title %}TimeFlow · {{ t[title_key] }}{% endblock %}
+
+{# הודעה קצרה: אימות מייל, קישור שפג תוקפו, הסרה מהמייל, מחיקת חשבון #}
+{% block card %}
+<h1 id="auth-title" class="{{ 'msg-ok' if ok else 'msg-warn' }}">{{ t[title_key] }}</h1>
+<p class="auth-links">
+  {% if user %}<a class="btn btn-primary" href="{{ url_for('zehava.home') }}">{{ t.back_home }}</a>
+  {% else %}<a class="btn btn-primary" href="{{ url_for('zehava.login') }}">{{ t.login_link }}</a>{% endif %}
+</p>
+{% endblock %}

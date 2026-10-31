@@ -1,0 +1,207 @@
+{% extends "zehava/layout.html" %}
+{% from "zehava/macros.html" import icon, csrf, back_to, action, card_head, timer_ring, timer_controls, pulse_form, insight_card with context %}
+
+{% block title %}TimeFlow · {{ t.nav_home }}{% endblock %}
+{% block main_class %}home{% endblock %}
+
+{# כשטיימר רץ: הדף מתרענן לבד בדיוק כשהזמן נגמר, והסשן נספר בשרת #}
+{% block head %}
+{% if timer.running and not timer.flexible %}<meta http-equiv="refresh" content="{{ timer.remaining + 1 }}">{% endif %}
+{% endblock %}
+
+{# כאן הכדור הפורח לא מרחף במקום קבוע: הוא טס על השביל #}
+{% block balloon %}{% endblock %}
+
+<!-- אבני הדרך על השביל: נדלקות לפי נקודות שנצברו מפעילות אמיתית -->
+{% block scene_extra %}
+{% for n in range(1, 7) %}
+<span class="milestone ms-{{ n }} {% if n <= journey.lit %}lit{% endif %}"></span>
+{% endfor %}
+<span class="journey" style="--from: {{ journey.from_top }}%; --to: {{ journey.top }}%">
+  <img src="{{ url_for('static', filename='img/balloon.png') }}" alt="">
+</span>
+<span class="trail-label tl-steps">{{ icon("clock", 16) }} {{ t.daily_steps }} · {{ today_points }}</span>
+<span class="trail-label tl-progress">{{ icon("progress_nav", 16) }} {{ t.climb.format(n=journey.climb) }} · {{ journey.lit }}/6</span>
+<span class="trail-label tl-goal" dir="auto">{{ icon("mountain", 16) }} {{ settings.goal_text or t.goal_default }}</span>
+{% endblock %}
+
+{% block content %}
+<section class="hero">
+  <div class="greeting">
+    <h1>{{ icon("sun", 34) }} <span>{{ greeting }}, <bdi>{{ user.display_name }}</bdi></span></h1>
+    <p>{{ t.promise }}</p>
+
+    <!-- שכבה 1, "עכשיו": צעד אחד ופעולה אחת -->
+    <section class="now glass" aria-labelledby="now-title">
+      <h2 id="now-title" class="now-label">{{ t.now }}</h2>
+      {% if timer.active %}
+        <p class="now-state">{{ icon("timer", 16) }} {{ t.paused_now if timer.paused else t.running_now }} · {{ t['kind_' ~ timer.kind] }}</p>
+        {% if active_task %}<strong class="now-task" dir="auto">{{ active_task.title }}</strong>{% endif %}
+        <div class="now-actions">
+          <a class="btn btn-primary btn-cta" href="{{ url_for('zehava.focus') }}">{{ icon("focus", 18) }} {{ t.continue_focus }}</a>
+        </div>
+      {% elif next_task %}
+        <p class="now-state">{{ t.next_step }}</p>
+        <strong class="now-task" dir="auto">{{ next_task.title }}</strong>
+        {% if next_task.next_step %}<span class="tiny" dir="auto">{{ t.tiny_step }} {{ next_task.next_step.title }}</span>{% endif %}
+        <div class="now-actions">
+          {{ action(url_for('zehava.focus_start', minutes=settings.focus_minutes), t.start_focus, "btn btn-primary btn-cta", "play", extra={"task_id": next_task.id}) }}
+          {{ action(url_for('zehava.focus_start', minutes=5), t.start_small, "btn btn-ghost", extra={"task_id": next_task.id}) }}
+          <a class="text-link" href="{{ url_for('zehava.snooze_help', task_id=next_task.id) }}">{{ t.help_start }}</a>
+        </div>
+      {% elif has_tasks %}
+        <p class="now-done">{{ t.all_done_now }}</p>
+      {% else %}
+        <p class="now-state">{{ t.empty_now }}</p>
+        <form class="now-add" action="{{ url_for('zehava.add') }}" method="post">
+          {{ csrf() }}{{ back_to() }}
+          <label class="sr-only" for="now-title-input">{{ t.task_title }}</label>
+          <input id="now-title-input" type="text" name="title" maxlength="200" dir="auto" placeholder="{{ t.placeholder }}" required>
+          <button type="submit" class="btn btn-primary">{{ icon("plus", 16) }} {{ t.first_task }}</button>
+        </form>
+      {% endif %}
+    </section>
+
+    <div class="hero-actions">
+      {{ action(url_for('zehava.calm'), t.calm_off if settings.calm_mode else t.calm_on, "btn btn-glass", "leaf") }}
+      <a class="btn btn-glass" href="{{ url_for('zehava.snooze') }}">{{ icon("snooze", 18) }} {{ t.unload }}</a>
+      {% if settings.sound_pref != "none" %}
+      <a class="btn btn-glass" href="{{ url_for('zehava.sounds') }}" target="_blank" rel="noopener">{{ icon("headphones", 18) }} {{ t.sounds }}<span class="sr-only"> ({{ t.open_sounds }})</span></a>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- היעד הגדול (הפסגה) והטיפוס הנוכחי -->
+  <form class="goal" action="{{ url_for('zehava.set_goal') }}" method="post">
+    {{ csrf() }}{{ back_to() }}
+    <div class="goal-top">
+      <label for="goal">{{ icon("flag", 16) }} {{ t.goal_label }}</label>
+      <strong class="goal-percent">{{ t.climb.format(n=journey.climb) }}</strong>
+    </div>
+    <div class="goal-row">
+      <input id="goal" type="text" name="goal" dir="auto" value="{{ settings.goal_text }}" placeholder="{{ t.goal_placeholder }}" maxlength="60">
+      <button type="submit" class="pill">{{ t.save }}</button>
+    </div>
+    <div class="bar" role="img" aria-label="{{ t.climb.format(n=journey.climb) }}: {{ climb_pct }}%"><span style="width: {{ climb_pct }}%"></span></div>
+    <small class="goal-note">{{ t.summit_reached if journey.summit_reached else t.to_next_station.format(n=journey.to_next) }}</small>
+  </form>
+</section>
+
+{% if settings.calm_mode %}
+<!-- מצב רגוע: כל השאר מחכה בתפריט -->
+<p class="calm-note glass">{{ icon("leaf", 18) }} {{ t.calm_note }}</p>
+{% else %}
+<!-- שכבה 2, "התכנון שלי" -->
+<h2 class="section-title">{{ t.planning }}</h2>
+<div class="board">
+  <div class="col">
+    <section class="card glass card-tall" aria-labelledby="home-tasks">
+      {% call card_head("todo", t.tasks_title, id="home-tasks") %}
+        <a class="count" href="{{ url_for('zehava.tasks') }}">{{ t.show_all }}</a>
+      {% endcall %}
+      <p class="date">{{ today_label }}</p>
+      <ul class="tasks">
+        {% for task in tasks %}
+        <li class="task" id="task-{{ task.id }}">
+          {{ action(url_for('zehava.toggle', task_id=task.id), "✓", "check", aria=t.mark_done ~ ": " ~ task.title) }}
+          <div class="task-body">
+            <span class="task-text" dir="auto">{{ task.title }}</span>
+            {% if task.due_time %}<small>{{ task.due_time }}</small>{% endif %}
+            {% if task.next_step %}<small dir="auto">{{ t.tiny_step }} {{ task.next_step.title }}</small>{% endif %}
+          </div>
+          {% if task.tag %}<span class="tag tag-{{ task.tag }}">{{ tags[task.tag][lang_index] }}</span>{% endif %}
+        </li>
+        {% else %}
+        <li class="empty"><strong>{{ t.no_tasks_title }}</strong><span>{{ t.no_tasks_text }}</span></li>
+        {% endfor %}
+      </ul>
+      {% if more_open %}<a class="text-link" href="{{ url_for('zehava.tasks') }}">{{ t.more_tasks.format(n=more_open) }}</a>{% endif %}
+      <form class="add-task" action="{{ url_for('zehava.add') }}" method="post">
+        {{ csrf() }}{{ back_to() }}
+        <label class="sr-only" for="home-add">{{ t.task_title }}</label>
+        <div class="add-row">
+          <input id="home-add" type="text" name="title" maxlength="200" placeholder="{{ t.placeholder }}" dir="auto" required>
+          <button type="submit" class="icon-btn" aria-label="{{ t.add }}" title="{{ t.add }}">{{ icon("plus", 16) }}</button>
+        </div>
+      </form>
+    </section>
+  </div>
+
+  <div class="col">
+    <section class="card glass" aria-labelledby="home-timer">
+            {% call card_head("tomato", t.nav_timer, id="home-timer") %}{% endcall %}
+      {% if timer.active %}
+      <div class="timer">
+        {{ timer_ring(timer) }}
+        {{ timer_controls(timer) }}
+      </div>
+      {% else %}
+      <div class="quick-start">
+        {% for m in [5, settings.focus_minutes] | unique %}
+        {{ action(url_for('zehava.timer_quick', minutes=m), m ~ " " ~ t.min, "opt-big", extra={"task_id": next_task.id} if next_task else none) }}
+        {% endfor %}
+        <a class="text-link" href="{{ url_for('zehava.timer') }}">{{ t.length }}…</a>
+      </div>
+      {% endif %}
+      <div class="stats stats-2">
+        <div><strong>{{ stats.completed }}</strong><small>{{ t.sessions_today }}</small></div>
+        <div><strong>{{ focus_label }}</strong><small>{{ t.focused_today }}</small></div>
+      </div>
+    </section>
+
+    <section class="card glass" aria-labelledby="home-journey">
+      {% call card_head("mountain", t.journey, id="home-journey") %}{% endcall %}
+      <p class="journey-line"><strong>{{ t.climb.format(n=journey.climb) }}</strong> · {{ journey.lit }}/6</p>
+      <div class="bar bar-big"><span style="width: {{ climb_pct }}%"></span></div>
+      <p class="muted small">{{ t.to_next_station.format(n=journey.to_next) }}</p>
+      <p class="muted small">{{ t.points_how }}</p>
+      <a class="text-link" href="{{ url_for('zehava.insights') }}">{{ icon("progress_nav", 15) }} {{ t.open_insights }}</a>
+    </section>
+  </div>
+
+  <div class="col">
+    <section class="card glass" aria-labelledby="home-agenda">
+      {% call card_head("calendar", t.agenda, id="home-agenda") %}
+        <a class="count" href="{{ url_for('zehava.calendar') }}">{{ t.calendar_title }}</a>
+      {% endcall %}
+      <ul class="agenda">
+        {% for item in agenda %}
+        <li class="agenda-item tag-line-{{ item.tag or ('google' if item.kind == 'google' else 'none') }} {% if item.done %}done{% endif %}">
+          <small>{{ item.time }}{% if item.kind == "google" %} · {{ t.from_google }}{% endif %}</small>
+          <span dir="auto">{{ item.title }}</span>
+        </li>
+        {% else %}
+        <li class="muted small">{{ t.agenda_empty }}</li>
+        {% endfor %}
+      </ul>
+    </section>
+
+    <section class="card glass" aria-labelledby="home-notes">
+      {% call card_head("notes", t.notes_title, id="home-notes") %}
+        <a class="count" href="{{ url_for('zehava.notes') }}">{{ t.show_all }}</a>
+      {% endcall %}
+      <div class="notes">
+        {% for note in notes %}
+        <div class="note note-{{ note.color }}"><p dir="auto">{{ note.body | truncate(90) }}</p></div>
+        {% else %}
+        <p class="muted small">{{ t.notes_empty }}</p>
+        {% endfor %}
+      </div>
+    </section>
+  </div>
+
+  <div class="col">
+    {% if pulse %}
+    <section class="card glass" id="pulse" aria-labelledby="home-pulse">
+      {% call card_head("heart", t.pulse_title, id="home-pulse") %}{% endcall %}
+      {{ pulse_form(url_for('zehava.pulse'), compact=true) }}
+    </section>
+    {% endif %}
+    {% if insight %}{{ insight_card(insight, compact=true) }}{% endif %}
+    <section class="card glass quote-card">
+      <p class="handwriting">{{ t.journey_quote }} ♡</p>
+    </section>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

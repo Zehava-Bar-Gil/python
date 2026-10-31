@@ -1,0 +1,10 @@
+{% extends "zehava/auth.html" %}
+
+{% block title %}TimeFlow · {{ t[title_key] }}{% endblock %}
+
+{# דף שגיאה רגוע: בלי פרטים טכניים, עם דרך חזרה #}
+{% block card %}
+<h1 id="auth-title">{{ t[title_key] }}</h1>
+<p class="muted">{{ t[text_key] }}</p>
+<p class="auth-links"><a class="btn btn-primary" href="{{ url_for('zehava.home') }}">{{ t.back_home }}</a></p>
+{% endblock %}

@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="{{ lang }}" dir="{{ t.dir }}">
+<head><meta charset="utf-8"></head>
+<!-- מייל אימות או איפוס סיסמה. הקישור חתום, מוגבל בזמן ונבדק בשרת -->
+<body style="margin:0;padding:24px;background:#DCEAF4;font-family:Arial,Helvetica,sans-serif;color:#1f2d3a;">
+  <div style="max-width:520px;margin:0 auto;background:#ffffff;border-radius:18px;padding:26px;text-align:{{ 'right' if t.dir == 'rtl' else 'left' }};">
+    <p style="margin:0;color:#456B68;font-weight:bold;letter-spacing:0.5px;">TimeFlow ⛰</p>
+    <h1 style="margin:6px 0 12px;font-size:20px;">{{ t.mail_hello.format(name=name) }}</h1>
+    <p style="margin:0 0 18px;">{{ t[kind ~ "_body"] }}</p>
+    <p style="margin:0;"><a href="{{ link }}" style="display:inline-block;padding:10px 16px;border-radius:12px;background:#456B68;color:#ffffff;text-decoration:none;font-weight:bold;">{{ t[kind ~ "_cta"] }}</a></p>
+    <p style="margin:18px 0 0;font-size:12px;color:#5d6d7c;word-break:break-all;">{{ link }}</p>
+    <p style="margin:18px 0 0;font-size:13px;color:#5d6d7c;">{{ t.mail_ignore }}</p>
+  </div>
+</body>
+</html>

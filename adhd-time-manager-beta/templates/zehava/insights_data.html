@@ -1,0 +1,35 @@
+{% extends "zehava/layout.html" %}
+{% from "zehava/macros.html" import icon, card_head with context %}
+
+{% block title %}TimeFlow · {{ t.data_title }}{% endblock %}
+
+{% block content %}
+<header class="page-head">
+  <h1>{{ icon("eye", 30) }} {{ t.data_title }}</h1>
+  <p>{{ t.data_text }}</p>
+</header>
+
+<div class="stack narrow">
+  {% for insight in found %}
+  <section class="card glass {% if chosen and insight.rule_id == chosen.rule_id %}chosen{% endif %}" aria-labelledby="rule-{{ insight.rule_id }}">
+    {% call card_head("sparkle", t[insight.message_key].format(**insight.params), level=2, id="rule-" ~ insight.rule_id) %}{% endcall %}
+    {% if insight.evidence.measured %}
+    <h3><span class="label-measured">{{ t.label_measured }}</span></h3>
+    <table class="data-table">
+      {% for key, value in insight.evidence.measured.items() %}<tr><th scope="row"><code>{{ key }}</code></th><td>{{ value }}</td></tr>{% endfor %}
+    </table>
+    {% endif %}
+    {% if insight.evidence.self_reported %}
+    <h3><span class="label-self">{{ t.label_self }}</span></h3>
+    <table class="data-table">
+      {% for key, value in insight.evidence.self_reported.items() %}<tr><th scope="row"><code>{{ key }}</code></th><td>{{ value }}</td></tr>{% endfor %}
+    </table>
+    {% endif %}
+    {% if insight.correlation %}<p class="muted small">{{ t.correlation_note }}</p>{% endif %}
+  </section>
+  {% else %}
+  <section class="card glass"><p>{{ t.no_insight }}</p></section>
+  {% endfor %}
+  <a class="pill pill-dark" href="{{ url_for('zehava.insights') }}">{{ t.back }}</a>
+</div>
+{% endblock %}

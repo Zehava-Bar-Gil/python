@@ -1,0 +1,118 @@
+{% extends "zehava/base.html" %}
+{% from "zehava/macros.html" import icon with context %}
+
+{% block title %}TimeFlow · {{ t.focus_mode }}{% endblock %}
+{% block body_class %}focus-page{% endblock %}
+
+{# כשיש שעת סיום: הדף מתרענן לבד כשהזמן נגמר #}
+{% block head %}
+{% if focus.running and not focus.flexible %}<meta http-equiv="refresh" content="{{ focus.remaining + 1 }}">{% endif %}
+{% endblock %}
+
+{% block body %}
+<!-- מצב מיקוד: הממשק נרגע ומשאיר מקום למשימה אחת -->
+<div class="focus-veil" aria-hidden="true"></div>
+
+<main class="focus-wrap">
+  <section class="focus-card glass">
+    <header class="focus-head">
+      <span class="badge">{{ icon("focus", 16) }} {{ t.focus_mode }} · {{ t.dnd }}</span>
+      <a class="icon-btn" href="{{ url_for('zehava_sounds') }}" target="_blank" rel="noopener" title="{{ t.open_sounds }}">{{ icon("headphones", 18) }}</a>
+    </header>
+
+    {% if focus.finished %}<p class="session-done">{{ t.session_done }}</p>{% endif %}
+
+    {% if task %}
+    <h1 class="focus-task" dir="auto">{{ task.text }}</h1>
+    {% if task.time or task.tag %}
+    <p class="focus-meta">
+      {% if task.time %}{{ icon("clock", 15) }} {{ task.time }}{% endif %}
+      {% if task.tag %}<span class="tag tag-{{ task.tag }}">{{ tags[task.tag][lang_index] }}</span>{% endif %}
+    </p>
+    {% endif %}
+
+    <!-- הטיימר -->
+    {% if focus.running %}
+    <div class="ring ring-big">
+      <svg viewBox="0 0 120 120" aria-hidden="true">
+        <circle class="ring-track" cx="60" cy="60" r="54"/>
+        {% if focus.flexible %}
+        <circle class="ring-progress ring-breathe" cx="60" cy="60" r="54" style="--from: 0"/>
+        {% else %}
+        <circle class="ring-progress running" cx="60" cy="60" r="54"
+          style="--from: {{ ((focus.total - focus.remaining) / focus.total * 339.3) | round(1) }}; --dur: {{ focus.remaining }}s"/>
+        {% endif %}
+      </svg>
+      <div class="ring-text">
+        {% if focus.flexible %}
+        <span class="countup running" style="--elapsed: {{ focus.elapsed }}"></span>
+        <small>{{ t.elapsed }}</small>
+        {% else %}
+        <span class="countdown running" style="--remaining: {{ focus.remaining }}"></span>
+        <small>{{ t.ends_at }}{{ focus.ends_at }}</small>
+        {% endif %}
+      </div>
+    </div>
+    {% else %}
+    <p class="focus-ask">{{ t.focus_how_long }}</p>
+    <div class="focus-options">
+      <form action="{{ url_for('zehava_focus_start', minutes=5) }}" method="post">
+        <button type="submit" class="btn btn-small-start">{{ icon("play", 14) }} {{ t.start_small }}</button>
+      </form>
+      <div class="focus-times">
+        {% for m in focus_options %}
+        <form action="{{ url_for('zehava_focus_start', minutes=m) }}" method="post">
+          <button type="submit" class="opt-big">{{ m }} <small>{{ t.min }}</small></button>
+        </form>
+        {% endfor %}
+        <form action="{{ url_for('zehava_focus_start', minutes=0) }}" method="post">
+          <button type="submit" class="opt-big">{{ t.flexible }}</button>
+        </form>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- צעדים קטנים: מפרקים את המשימה גם מכאן -->
+    <div class="focus-steps">
+      <h2>{{ icon("steps", 16) }} {{ t.steps }}</h2>
+      <ul class="step-list">
+        {% for step in task.steps %}
+        <li class="step {% if step.done %}done{% endif %}">
+          <form action="{{ url_for('zehava_step_toggle', task_id=task_id, step_id=loop.index0) }}" method="post">
+            <input type="hidden" name="back" value="focus">
+            <button type="submit" class="step-check" title="{{ t.mark_done }}">✓</button>
+          </form>
+          <span dir="auto">{{ step.text }}</span>
+          <form action="{{ url_for('zehava_step_delete', task_id=task_id, step_id=loop.index0) }}" method="post">
+            <input type="hidden" name="back" value="focus">
+            <button type="submit" class="remove" title="{{ t.delete }}">✕</button>
+          </form>
+        </li>
+        {% endfor %}
+      </ul>
+      <form class="add-step" action="{{ url_for('zehava_step_add', task_id=task_id) }}" method="post">
+        <input type="hidden" name="back" value="focus">
+        <input type="text" name="text" placeholder="{{ t.step_placeholder }}" maxlength="80" dir="auto" required>
+        <button type="submit" class="icon-btn" title="{{ t.add }}">{{ icon("plus", 16) }}</button>
+      </form>
+    </div>
+
+    <div class="focus-actions">
+      <form action="{{ url_for('zehava_focus_done') }}" method="post">
+        <button type="submit" class="btn btn-primary">{{ icon("check", 16) }} {{ t.task_finished }}</button>
+      </form>
+      <form action="{{ url_for('zehava_focus_leave') }}" method="post">
+        <button type="submit" class="btn btn-ghost">{{ icon("exit", 16) }} {{ t.leave_focus }}</button>
+      </form>
+    </div>
+    <p class="leave-note">{{ t.leave_note }}</p>
+
+    {% else %}
+    <p class="focus-empty">{{ t.focus_empty }}</p>
+    <form action="{{ url_for('zehava_focus_leave') }}" method="post">
+      <button type="submit" class="btn btn-primary">{{ t.back_to_board }}</button>
+    </form>
+    {% endif %}
+  </section>
+</main>
+{% endblock %}

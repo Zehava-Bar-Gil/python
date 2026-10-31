@@ -1,0 +1,93 @@
+{% extends "zehava/base.html" %}
+{% from "zehava/macros.html" import icon, csrf, back_to, action, timer_ring, timer_controls, flashes with context %}
+
+{% block title %}TimeFlow · {{ t.focus_mode }}{% endblock %}
+{% block body_class %}focus-page{% endblock %}
+
+{# כשיש שעת סיום: הדף מתרענן לבד כשהזמן נגמר #}
+{% block head %}
+{% if timer.running and not timer.flexible %}<meta http-equiv="refresh" content="{{ timer.remaining + 1 }}">{% endif %}
+{% endblock %}
+
+{% block body %}
+<!-- מצב מיקוד: הממשק נרגע ומשאיר מקום למשימה אחת -->
+<div class="focus-veil" aria-hidden="true"></div>
+
+<main class="focus-wrap" id="content" tabindex="-1">
+  <section class="focus-card glass" aria-labelledby="focus-title">
+    <header class="focus-head">
+      <span class="badge">{{ icon("focus", 16) }} {{ t.focus_mode }} · {{ t.dnd }}</span>
+      {% if settings.sound_pref != "none" %}
+      <a class="icon-btn" href="{{ url_for('zehava.sounds') }}" target="_blank" rel="noopener" aria-label="{{ t.open_sounds }}" title="{{ t.open_sounds }}">{{ icon("headphones", 18) }}</a>
+      {% endif %}
+    </header>
+
+    {{ flashes() }}
+
+    {% if task %}
+    <h1 class="focus-task" id="focus-title" dir="auto">{{ task.title }}</h1>
+    {% if task.due_time or task.tag %}
+    <p class="focus-meta">
+      {% if task.due_time %}{{ icon("clock", 15) }} {{ task.due_time }}{% endif %}
+      {% if task.tag %}<span class="tag tag-{{ task.tag }}">{{ tags[task.tag][lang_index] }}</span>{% endif %}
+    </p>
+    {% endif %}
+    {% if task.next_step %}<p class="step-now"><small>{{ t.step_now }}</small> <strong dir="auto">{{ task.next_step.title }}</strong></p>{% endif %}
+    {% else %}
+    <h1 class="focus-task" id="focus-title">{{ t.focus_mode }}</h1>
+    <p class="focus-empty">{{ t.focus_empty }}</p>
+    {% endif %}
+
+    <!-- הטיימר: אותו טיימר כמו בדף טיימר עגבנייה -->
+    {% if timer.active %}
+    {{ timer_ring(timer, big=true) }}
+    {{ timer_controls(timer) }}
+    {% else %}
+    <p class="focus-ask">{{ t.focus_how_long }}</p>
+    <div class="focus-options">
+      {{ action(url_for('zehava.focus_start', minutes=5), t.start_small, "btn btn-small-start", "play", extra={"task_id": task.id} if task else none) }}
+      <div class="focus-times">
+        {% for m in quick %}
+        {{ action(url_for('zehava.focus_start', minutes=m), m ~ " " ~ t.min, "opt-big", extra={"task_id": task.id} if task else none) }}
+        {% endfor %}
+        {{ action(url_for('zehava.focus_start', minutes=0), t.flexible, "opt-big", extra={"task_id": task.id} if task else none) }}
+      </div>
+    </div>
+    {% endif %}
+
+    {% if task %}
+    <!-- צעדים קטנים: מפרקים את המשימה גם מכאן -->
+    <div class="focus-steps">
+      <h2>{{ icon("steps", 16) }} {{ t.steps }}</h2>
+      <ul class="step-list">
+        {% for step in task.steps %}
+        <li class="step {% if step.done_at %}done{% endif %}">
+          {{ action(url_for('zehava.step_toggle', task_id=task.id, step_id=step.id), "✓", "step-check", aria=t.mark_done ~ ": " ~ step.title) }}
+          <span dir="auto">{{ step.title }}</span>
+          {{ action(url_for('zehava.step_delete', task_id=task.id, step_id=step.id), "✕", "remove", aria=t.delete ~ ": " ~ step.title) }}
+        </li>
+        {% endfor %}
+      </ul>
+      <form class="add-step" action="{{ url_for('zehava.step_add', task_id=task.id) }}" method="post">
+        {{ csrf() }}{{ back_to() }}
+        <label class="sr-only" for="focus-step">{{ t.step_placeholder }}</label>
+        <input id="focus-step" type="text" name="text" placeholder="{{ t.step_placeholder }}" maxlength="120" dir="auto" required>
+        <button type="submit" class="icon-btn" aria-label="{{ t.add }}" title="{{ t.add }}">{{ icon("plus", 16) }}</button>
+      </form>
+      <a class="text-link" href="{{ url_for('zehava.snooze_help', task_id=task.id) }}">{{ icon("sparkle", 15) }} {{ t.help_start }}</a>
+    </div>
+    {% endif %}
+
+    <div class="focus-actions">
+      {% if task and task.status == "open" %}
+      {{ action(url_for('zehava.focus_done'), t.task_finished, "btn btn-primary", "check", extra={"task_id": task.id}) }}
+      {% endif %}
+      <form class="inline-form" action="{{ url_for('zehava.focus_leave') }}" method="post">
+        {{ csrf() }}
+        <button type="submit" class="btn btn-ghost">{{ icon("exit", 16) }} {{ t.leave_focus }}</button>
+      </form>
+    </div>
+    <p class="leave-note">{{ t.leave_note }}</p>
+  </section>
+</main>
+{% endblock %}

@@ -1,0 +1,133 @@
+{% extends "zehava/layout.html" %}
+{% from "zehava/macros.html" import icon, csrf, back_to, action, confirm_delete, card_head with context %}
+
+{% block title %}TimeFlow · {{ t.snooze_title }}{% endblock %}
+
+{# הצעה: שיקוף קצר, שאלה אם צריך, ועד שלוש פעולות קטנות #}
+{% macro suggestion_box(entry) %}
+{% set s = entry.suggestion %}
+<div class="suggestion" id="suggestion-{{ entry.id }}">
+  <p class="source-line">
+    <span class="source-badge source-{{ s.source }}">{{ icon("sparkle", 14) }} {{ t.source_claude if s.source == "claude" else t.source_offline }}</span>
+    {% if s.notice %}<small>{{ t[s.notice] }}</small>{% elif s.source == "claude" %}<small>{{ t.ai_notice }}</small>{% endif %}
+  </p>
+  <p class="reflection" dir="auto">{{ s.reflection }}</p>
+  {% if s.question %}<p class="question" dir="auto">{{ s.question }}</p>{% endif %}
+  <ol class="options">
+    {% for option in s.options %}
+    <li class="option">
+      <span class="option-title" dir="auto">{{ option.title }} <small>· {{ option.minutes }} {{ t.min }}</small></span>
+      <div class="option-actions">
+        {{ action(url_for('zehava.snooze_option', entry_id=entry.id, index=loop.index0, action='task'), t.option_add, "btn btn-soft", "plus") }}
+        {{ action(url_for('zehava.snooze_option', entry_id=entry.id, index=loop.index0, action='timer'), t.option_timer.format(n=option.minutes), "btn btn-soft", "play") }}
+        {% if entry.task_id %}{{ action(url_for('zehava.snooze_option', entry_id=entry.id, index=loop.index0, action='step'), t.option_step, "btn btn-soft", "steps") }}{% endif %}
+      </div>
+    </li>
+    {% endfor %}
+  </ol>
+</div>
+{% endmacro %}
+
+{% block content %}
+<header class="page-head">
+  <h1>{{ icon("snooze", 30) }} {{ t.snooze_title }}</h1>
+  <p>{{ t.snooze_sub }}</p>
+</header>
+
+<div class="page-grid snooze-grid">
+  <div class="stack">
+    {% if help_task %}
+    <!-- "קשה להתחיל?": צעד ראשון קטן למשימה -->
+    <section class="card glass" id="help" aria-labelledby="help-title">
+      {% call card_head("sparkle", t.help_title, id="help-title") %}{% endcall %}
+      <p>{{ t.help_sub }}</p>
+      <p class="help-task" dir="auto"><strong>{{ help_task.title }}</strong></p>
+      <form class="inline-form" action="{{ url_for('zehava.snooze_help', task_id=help_task.id) }}" method="post">
+        {{ csrf() }}
+        <button type="submit" class="btn btn-primary">{{ icon("sparkle", 16) }} {{ t.help_button }}</button>
+      </form>
+      <p class="muted small">{{ t.ai_notice if ai_ready else (t.ai_disabled if not settings.ai_enabled else t.ai_offline) }}</p>
+    </section>
+    {% endif %}
+
+    <!-- לפרוק: כותבים הכול, בלי סדר -->
+    <section class="card glass" id="write" aria-labelledby="write-title">
+      {% call card_head("send", t.write_label, id="write-title") %}{% endcall %}
+      <form class="form-grid" action="{{ url_for('zehava.snooze_write') }}" method="post">
+        {{ csrf() }}
+        <label class="sr-only" for="snooze-text">{{ t.write_label }}</label>
+        <textarea id="snooze-text" name="text" rows="4" maxlength="1000" dir="auto" placeholder="{{ t.write_placeholder }}" required></textarea>
+        <button type="submit" class="btn btn-primary">{{ icon("send", 16) }} {{ t.write_button }}</button>
+      </form>
+    </section>
+
+    {% if focus_entry %}
+    <!-- מה עכשיו: להמשיך לפרוק, לקבל הצעה, או לחזור למשימה -->
+    <section class="card glass current" id="current" aria-labelledby="current-title">
+      {% call card_head("leaf", t.after_write, id="current-title") %}{% endcall %}
+      <blockquote class="thought" dir="auto">{{ focus_entry.body }}</blockquote>
+      {% if focus_entry.suggestion %}
+        {{ suggestion_box(focus_entry) }}
+      {% endif %}
+      <div class="choice-row">
+        <a class="btn btn-ghost" href="#write">{{ icon("send", 16) }} {{ t.keep_unloading }}</a>
+        {% if not focus_entry.suggestion %}
+        {{ action(url_for('zehava.snooze_suggest', entry_id=focus_entry.id), t.get_suggestion, "btn btn-primary", "sparkle") }}
+        {% endif %}
+        <a class="btn btn-ghost" href="{{ url_for('zehava.focus', task=back_task_id) if back_task_id else url_for('zehava.focus') }}">{{ icon("focus", 16) }} {{ t.back_to_task }}</a>
+      </div>
+      {% if not focus_entry.suggestion %}<p class="muted small">{{ t.ai_notice if ai_ready else (t.ai_disabled if not settings.ai_enabled else t.ai_offline) }}</p>{% endif %}
+    </section>
+    {% endif %}
+  </div>
+
+  <div class="stack">
+    <!-- המחשבות שנפרקו, ממוינות -->
+    <section class="card glass" id="thoughts" aria-labelledby="thoughts-title">
+      {% call card_head("notes", t.thoughts, id="thoughts-title") %}{% endcall %}
+      {% if not entries %}<p class="muted small">{{ t.no_thoughts }}</p>{% endif %}
+      {% for bucket in buckets %}
+      {% set group = entries | selectattr("bucket", "equalto", bucket) | list %}
+      {% if group %}
+      <h3 class="bucket-title bucket-{{ bucket }}">{{ t['bucket_' ~ bucket] }} · {{ group | length }}</h3>
+      <ul class="thought-list">
+        {% for entry in group %}
+        <li class="thought-item" id="entry-{{ entry.id }}">
+          <p dir="auto">{{ entry.body | truncate(160) }}</p>
+          {% if entry.suggestion %}
+          <details class="thought-suggestion"><summary>{{ icon("sparkle", 14) }} {{ t.suggestion }}</summary>{{ suggestion_box(entry) }}</details>
+          {% endif %}
+          <div class="thought-actions">
+            <span class="muted small">{{ t.sort_as }}</span>
+            {% for target in buckets[1:] if target != entry.bucket %}
+            {{ action(url_for('zehava.snooze_sort', entry_id=entry.id, bucket=target), t['bucket_' ~ target], "chip", anchor="thoughts") }}
+            {% endfor %}
+            {% if not entry.task_id %}{{ action(url_for('zehava.snooze_to_task', entry_id=entry.id), t.to_task, "chip", anchor="thoughts") }}{% endif %}
+            {% if not entry.suggestion %}{{ action(url_for('zehava.snooze_suggest', entry_id=entry.id), t.get_suggestion, "chip") }}{% endif %}
+            {{ confirm_delete(url_for('zehava.snooze_delete', entry_id=entry.id), anchor="thoughts") }}
+          </div>
+        </li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+      {% endfor %}
+    </section>
+
+    <!-- דחייה עדינה של המשימה הבאה עם שעה (מגרסה 1) -->
+    <section class="card glass" id="postpone" aria-labelledby="postpone-title">
+      {% call card_head("clock", t.postpone_title, id="postpone-title") %}{% endcall %}
+      {% if timed_task %}
+      <p class="snooze-task"><strong dir="auto">{{ timed_task.title }}</strong> · {{ timed_task.due_time }}</p>
+      <p class="muted small">{{ t.snooze_for }}</p>
+      <ul class="snooze-list">
+        {% for m in snooze_options %}
+        <li>{{ action(url_for('zehava.postpone', minutes=m), ("1 " ~ t.hour) if m == 60 else (m ~ " " ~ t.minutes), "", "clock", anchor="postpone") }}</li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <p class="muted small">{{ t.snooze_none }}</p>
+      {% endif %}
+    </section>
+  </div>
+</div>
+{% endblock %}

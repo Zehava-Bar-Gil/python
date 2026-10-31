@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="{{ lang }}" dir="{{ t.dir }}">
+<head><meta charset="utf-8"></head>
+<!-- מייל: העיצוב כתוב בתוך התגיות, כי תוכנות מייל לא קוראות קובצי CSS -->
+<body style="margin:0;padding:24px;background:#DCEAF4;font-family:Arial,Helvetica,sans-serif;color:#1f2d3a;">
+  <div style="max-width:520px;margin:0 auto;background:#ffffff;border-radius:18px;padding:26px;text-align:{{ 'right' if t.dir == 'rtl' else 'left' }};">
+    <p style="margin:0;color:#456B68;font-weight:bold;letter-spacing:0.5px;">TimeFlow ⛰</p>
+    <h1 style="margin:6px 0 2px;font-size:22px;">{{ t.summary_title }}</h1>
+    <p style="margin:0 0 18px;color:#5d6d7c;">{{ today_label }}</p>
+
+    <h2 style="margin:18px 0 6px;font-size:16px;color:#456B68;">✓ {{ t.summary_done }} ({{ summary.done | length }})</h2>
+    {% for text in summary.done %}<p style="margin:4px 0;">• {{ text }}</p>{% else %}<p style="margin:4px 0;color:#5d6d7c;">{{ t.summary_none }}</p>{% endfor %}
+
+    <h2 style="margin:18px 0 6px;font-size:16px;color:#b5653f;">↻ {{ t.summary_postponed }} ({{ summary.postponed | length }})</h2>
+    {% for task in summary.postponed %}<p style="margin:4px 0;">• {{ task.text }} <span style="color:#5d6d7c;">(× {{ task.snoozed }})</span></p>{% else %}<p style="margin:4px 0;color:#5d6d7c;">{{ t.summary_none }}</p>{% endfor %}
+
+    <h2 style="margin:18px 0 6px;font-size:16px;color:#35658f;">⚑ {{ t.next_step }}</h2>
+    <p style="margin:4px 0;font-weight:bold;">{{ summary.next.text if summary.next else t.all_done }}</p>
+    {% if summary.tiny_step %}<p style="margin:4px 0;color:#5d6d7c;">{{ t.tiny_step }} {{ summary.tiny_step }}</p>{% endif %}
+
+    <p style="margin:20px 0 0;padding:12px 14px;background:#F4D7C1;border-radius:12px;">
+      {{ t.focused_time }}: {{ summary.focused // 60 }}h {{ summary.focused % 60 }}m · {{ t.pomodoros }}: {{ summary.pomodoros }}
+    </p>
+    <p style="margin:22px 0 0;color:#456B68;">{{ t.mail_footer }}</p>
+  </div>
+</body>
+</html>

@@ -1,0 +1,112 @@
+{% extends "zehava/layout.html" %}
+{% from "zehava/macros.html" import icon, csrf, back_to, action, card_head, pulse_form, insight_card with context %}
+
+{% block title %}TimeFlow · {{ t.insights_title }}{% endblock %}
+
+{% block content %}
+<header class="page-head">
+  <h1>{{ icon("progress_nav", 30) }} {{ t.insights_title }}</h1>
+  <p>{{ t.insights_sub }}</p>
+</header>
+
+<div class="page-grid">
+  <div class="stack">
+    <!-- תובנה אחת בכל פעם, רק אחרי הסכמה ללמידה אישית -->
+    {% if not settings.learning_enabled %}
+    <section class="card glass" aria-labelledby="learning-title">
+      {% call card_head("sparkle", t.learning_off_title, id="learning-title") %}{% endcall %}
+      <p>{{ t.learning_off_text }}</p>
+      {{ action(url_for('zehava.learning_consent'), t.enable_learning, "btn btn-primary", "check", extra={"enable": "1"}) }}
+      <a class="text-link" href="{{ url_for('zehava.privacy') }}">{{ icon("lock", 15) }} {{ t.privacy_link }}</a>
+    </section>
+    {% elif insight %}
+    {{ insight_card(insight) }}
+    {% else %}
+    <section class="card glass" aria-labelledby="no-insight">
+      {% call card_head("sparkle", t.label_interpretation, id="no-insight") %}{% endcall %}
+      <p>{{ t.no_insight }}</p>
+    </section>
+    {% endif %}
+
+    <!-- המשוב היומי: דיווח עצמי, אופציונלי -->
+    {% if pulse_open %}
+    <section class="card glass" id="pulse" aria-labelledby="pulse-title">
+      {% call card_head("heart", t.pulse_title, id="pulse-title") %}{% endcall %}
+      {% if pulse and not pulse.skipped %}
+      <p class="pulse-answer">{{ faces[pulse.rating] }} {{ t.pulse_answered.format(label=t.ratings[pulse.rating]) }}</p>
+      <details class="reasons"><summary>{{ t.pulse_edit }}</summary>{{ pulse_form(url_for('zehava.pulse'), pulse, selected_reasons) }}</details>
+      {% elif pulse and pulse.skipped %}
+      <p class="muted">{{ t.pulse_skipped }}</p>
+      <details class="reasons"><summary>{{ t.pulse_edit }}</summary>{{ pulse_form(url_for('zehava.pulse')) }}</details>
+      {% else %}
+      {{ pulse_form(url_for('zehava.pulse')) }}
+      {% endif %}
+    </section>
+    {% endif %}
+
+    {% if overview %}
+    <!-- פירוט נוסף: נפתח רק כשרוצים. כל מדד מסומן לפי המקור שלו -->
+    <details class="card glass more" id="details">
+      <summary>{{ icon("eye", 16) }} {{ t.last_14 }}</summary>
+      <h3>{{ t.focus_by_day }} <span class="label-measured">{{ t.label_measured }}</span></h3>
+      <ol class="chart" aria-label="{{ t.focus_by_day }}">
+        {% for point in overview.series %}
+        <li style="--h: {{ point.height }}%" title="{{ point.day.strftime('%d/%m') }}: {{ point.focus_minutes }} {{ t.min }}">
+          <span class="bar-col"></span>
+          <small class="sr-only">{{ point.day.strftime('%d/%m') }}: {{ point.focus_minutes }} {{ t.min }}</small>
+          <small aria-hidden="true">{{ point.day.day }}</small>
+        </li>
+        {% endfor %}
+      </ol>
+      <h3>{{ t.pulse_by_day }} <span class="label-self">{{ t.label_self }}</span></h3>
+      <p class="pulse-row">{% for point in overview.series %}<span title="{{ point.day.strftime('%d/%m') }}">{{ faces[point.rating] if point.rating else "·" }}</span>{% endfor %}</p>
+      <h3>{{ t.start_rate }} <span class="label-measured">{{ t.label_measured }}</span></h3>
+      <p>{{ t.start_rate_text.format(**overview.start_rate) }}</p>
+      <h3>{{ t.planned_vs_actual }} <span class="label-measured">{{ t.label_measured }}</span></h3>
+      <p>{{ t.planned_vs_actual_text.format(planned=overview.planned_minutes, actual=overview.actual_minutes) }}</p>
+      {% if overview.sounds %}
+      <h3>{{ t.sound_prefs }} <span class="label-self">{{ t.label_self }}</span></h3>
+      <ul class="plain">{% for space, counts in overview.sounds.items() %}<li>{{ space }}: {{ t.helped_stats.format(**counts) }}</li>{% endfor %}</ul>
+      {% endif %}
+      <p class="muted small">{{ t.rec_feedback.format(a=overview.feedback.accepted, d=overview.feedback.dismissed, c=overview.feedback.corrected) }}</p>
+      <div class="choice-row">
+        {{ action(url_for('zehava.learning_consent'), t.disable_learning, "btn btn-ghost", extra={"enable": "0"}) }}
+        <a class="text-link" href="{{ url_for('zehava.settings') }}#privacy">{{ icon("settings", 15) }} {{ t.delete_learning }}</a>
+      </div>
+    </details>
+    {% endif %}
+  </div>
+
+  <div class="stack">
+    <!-- הסיכום של היום: רק מה שנמדד -->
+    <section class="card glass" id="summary" aria-labelledby="summary-title">
+      {% call card_head("mail", t.summary_title, id="summary-title") %}{% endcall %}
+      <div class="sum-block">
+        <h3>{{ icon("check", 16) }} {{ t.summary_done }} · {{ summary.done | length }}</h3>
+        {% if summary.done %}<ul>{% for title in summary.done[:6] %}<li dir="auto">{{ title }}</li>{% endfor %}</ul>
+        {% else %}<p class="muted small">{{ t.summary_none }}</p>{% endif %}
+      </div>
+      <div class="sum-block">
+        <h3>{{ icon("snooze", 16) }} {{ t.summary_postponed }} · {{ summary.postponed | length }}</h3>
+        {% if summary.postponed %}<ul>{% for task in summary.postponed[:5] %}<li><span dir="auto">{{ task.title }}</span> <small>× {{ task.snooze_count }}</small></li>{% endfor %}</ul>
+        {% else %}<p class="muted small">{{ t.summary_none }}</p>{% endif %}
+      </div>
+      <div class="stats">
+        <div><strong>{{ summary.stats.completed }}</strong><small>{{ t.sessions_today }}</small></div>
+        <div><strong>{{ focus_label }}</strong><small>{{ t.focused_today }}</small></div>
+        <div><strong>{{ summary.points }}</strong><small>{{ t.daily_steps }}</small></div>
+      </div>
+      <p class="muted small">{{ t.climb.format(n=journey.climb) }} · {{ t.to_next_station.format(n=journey.to_next) }}</p>
+      {% if email_verified %}
+      {{ action(url_for('zehava.mail_send'), t.send_mail, "btn btn-primary btn-wide", "mail", anchor="summary") }}
+      {% else %}
+      <p class="muted small">{{ t.mail_needs_verify }}</p>
+      {% endif %}
+    </section>
+
+    <section class="card glass quote-card">
+      <p class="handwriting">{{ t.journey_quote }} ♡</p>
+    </section>
+  </div>
+</div>
+{% endblock %}
