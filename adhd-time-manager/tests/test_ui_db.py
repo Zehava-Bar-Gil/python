@@ -69,11 +69,12 @@ class InterfaceTests(TimeFlowTestCase):
         self.post(self.client_, "/zehava/settings", {
             "theme": "light", "lang": "en", "sound_pref": "none", "notifications": "normal",
             "focus_minutes": "500", "short_break_minutes": "3", "long_break_minutes": "20",
-            "daily_email_at": "07:30", "timer_chime": "1", "display_name": "Zee"})
+            "daily_email_at": "07:30", "timer_chime": "1", "first_name_he": "זי", "first_name_en": "Zee"})
         settings = self.repo().get_settings(self.user)
         self.assertEqual((settings["theme"], settings["lang"], settings["focus_minutes"], settings["timer_chime"]),
                          ("light", "en", 120, 1))
-        self.assertEqual(self.repo().get_user(self.user)["display_name"], "Zee")
+        user = self.repo().get_user(self.user)
+        self.assertEqual((user["first_name_he"], user["first_name_en"], user["display_name"]), ("זי", "Zee", "זי"))
         self.post(self.client_, "/zehava/settings", {"theme": "neon", "daily_email_at": "99:99"})
         settings = self.repo().get_settings(self.user)
         self.assertEqual((settings["theme"], settings["daily_email_at"]), ("light", "07:30"))
@@ -95,6 +96,16 @@ class InterfaceTests(TimeFlowTestCase):
         html = self.html(self.client_.get("/zehava"))
         self.assertNotIn('class="board"', html)
         self.assertIn("משימה אחת", html)          # הצעד הבא עדיין מוצג ב"עכשיו"
+
+    def test_next_steps_open_instead_of_flipping(self):
+        for title in ("ראשונה", "שנייה", "שלישית", "רביעית"):
+            self.repo().create_task(self.user, title)
+        html = self.html(self.client_.get("/zehava"))
+        deck = re.search(r'<ul class="deck">(.*?)</ul>', html, re.S).group(1)
+        self.assertEqual(deck.count('<details class="deck-card glass">'), 3)   # רק שלושה קלפים
+        self.assertEqual(deck.count('<summary class="deck-front">'), 3)
+        self.assertNotIn("flip", deck)                                        # אין יותר קלפים שמתהפכים
+        self.assertIn("לראות את הצעד הקטן", deck)
 
     def test_goal_text(self):
         self.post(self.client_, "/zehava/goal", {"goal": "x" * 100})
@@ -124,6 +135,26 @@ class DatabaseTests(TimeFlowTestCase):
         for table in ("users", "tasks", "task_steps", "notes", "focus_sessions", "journey_events", "daily_pulse",
                       "insights", "snooze_entries", "email_log", "google_accounts", "calendar_events"):
             self.assertIn(table, tables)
+
+    def test_migration_2_adds_columns_and_keeps_old_data(self):
+        # מסד ישן בגרסה 1, עם משתמשת, משימה ופתק. אחרי השדרוג הכול נשאר, ויש שתי עמודות חדשות וגיבוי
+        old = Path(self.folder) / "old.db"
+        conn = sqlite3.connect(old)
+        conn.executescript(db.SCHEMA_FILE.read_text(encoding="utf-8"))
+        conn.execute("INSERT INTO schema_version (version) VALUES (1)")
+        conn.execute("INSERT INTO users (email, display_name, password_hash, created_at, updated_at)"
+                     " VALUES ('old@example.com', 'Old', 'x', 'n', 'n')")
+        conn.execute("INSERT INTO tasks (user_id, title, created_at, updated_at) VALUES (1, 'משימה ישנה', 'n', 'n')")
+        conn.execute("INSERT INTO notes (user_id, body, created_at, updated_at) VALUES (1, 'פתק ישן', 'n', 'n')")
+        conn.commit()
+        conn.close()
+        backups = Path(self.folder) / "old-backups"
+        self.assertEqual(db.migrate(old, backups), db.LATEST_VERSION)
+        self.assertEqual(len(list(backups.glob(f"*before-v{db.LATEST_VERSION}.db"))), 1)
+        conn = sqlite3.connect(old)
+        self.addCleanup(conn.close)
+        self.assertEqual(conn.execute("SELECT title, estimate_minutes FROM tasks").fetchall(), [("משימה ישנה", None)])
+        self.assertEqual(conn.execute("SELECT body, pinned FROM notes").fetchall(), [("פתק ישן", 0)])
 
     def test_backup_and_restore(self):
         _, user = self.register()

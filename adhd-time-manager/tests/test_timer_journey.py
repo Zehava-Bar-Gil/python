@@ -1,7 +1,7 @@
 """טיימר עגבנייה, מצב מיקוד ומסע הכדור הפורח."""
 from datetime import timedelta
 
-from timeflow import clock, focus_timer, journey
+from timeflow import clock, focus_timer, journey, motivation
 
 from .helpers import TimeFlowTestCase
 
@@ -205,3 +205,72 @@ class JourneyTests(TimeFlowTestCase):
         self.freeze(clock.now() + timedelta(days=1))
         journey.record(r, user, "task", 3)               # 9 נקודות: תחנה 2
         self.assertEqual(journey.stations_reached(r, user, clock.today()), 1)
+
+    def test_day_light_grows_and_never_punishes(self):
+        self.assertEqual(journey.day_light(0)["stage"], "start")
+        self.assertEqual(journey.day_light(0)["pct"], 0)
+        half = journey.day_light(journey.DAILY_POINTS // 2)
+        self.assertEqual((half["stage"], half["pct"]), ("going", 50))
+        extra = journey.day_light(journey.DAILY_POINTS * 3)          # יום עמוס: לא עובר את 100%
+        self.assertEqual((extra["stage"], extra["pct"], extra["level"]), ("full", 100, 1))
+
+    def test_home_window_shows_todays_light(self):
+        client, user = self.register()
+        html = self.html(client.get("/zehava"))
+        self.assertIn('class="now-window day-start"', html)
+        self.assertIn("עוד לא התחלנו היום, וזה בסדר", html)
+        self.assertIn('class="day-glow" style="--day: 0.0"', html)
+        journey.record(self.repo(), user, "task", 1)                 # 3 נקודות מתוך 8
+        html = self.html(client.get("/zehava"))
+        self.assertIn('class="now-window day-going"', html)
+        self.assertIn("מתקדמים, צעד אחר צעד", html)
+        self.assertIn(">37%<", html)
+        self.freeze(clock.now() + timedelta(days=1))                  # יום חדש מתחיל מאפס, הטיפוס נשאר
+        self.assertIn('class="now-window day-start"', self.html(client.get("/zehava")))
+        self.post(client, "/zehava/calm")                             # מצב רגוע: בלי החלון
+        self.assertNotIn("now-window", self.html(client.get("/zehava")))
+
+
+class MotivationTests(TimeFlowTestCase):
+    def setUp(self):
+        super().setUp()
+        self.client_, self.user = self.register()
+
+    def message(self):
+        return motivation.pick(self.repo(), self.user, clock.now(), self.repo().list_tasks(self.user))
+
+    def test_no_special_state_shows_the_usual_promise(self):
+        self.assertIsNone(self.message())
+        self.assertIn("דרך רגועה יותר להתמקד", self.html(self.client_.get("/zehava")))
+
+    def test_busy_day(self):
+        for i in range(motivation.BUSY_DAY_TASKS):
+            self.repo().create_task(self.user, f"t{i}", due_date=clock.today().isoformat())
+        self.assertTrue(self.message().startswith("mot_busy_"))
+        self.assertIn('class="motivation"', self.html(self.client_.get("/zehava")))
+
+    def test_break_after_three_tasks_today(self):
+        for i in range(3):
+            task_id = self.repo().create_task(self.user, f"t{i}")
+            self.repo().set_task_done(self.user, task_id, True)
+        self.assertTrue(self.message().startswith("mot_break_"))
+
+    def test_welcome_back_after_two_quiet_days(self):
+        journey.record(self.repo(), self.user, "step", 1)
+        self.freeze(clock.now() + timedelta(days=1))
+        self.assertIsNone(self.message())                                 # יום אחד בלי פעילות: עוד לא "חזרה"
+        self.freeze(clock.now() + timedelta(days=1))
+        self.assertTrue(self.message().startswith("mot_back_"))
+
+    def test_after_a_good_day(self):
+        for task_id in range(1, 4):                                       # 9 נקודות אתמול
+            journey.record(self.repo(), self.user, "task", task_id)
+        self.freeze(clock.now() + timedelta(days=1))
+        self.assertTrue(self.message().startswith("mot_after_good_day_"))
+
+    def test_evening_and_daily_variation(self):
+        self.freeze(clock.now().replace(hour=21, minute=30))
+        first = self.message()
+        self.assertTrue(first.startswith("mot_evening_"))
+        self.freeze(clock.now() + timedelta(days=1))
+        self.assertNotEqual(first, self.message())                         # הניסוח מתחלף מיום ליום

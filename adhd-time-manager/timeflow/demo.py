@@ -40,8 +40,12 @@ def seed_demo(app, seed=7):
         for title, at_time in (("שיחה עם המנחה", "11:30"), ("ללכת לחדר כושר", "18:00")):
             repo.create_task(user_id, title, tag="personal" if at_time == "18:00" else "study",
                              due_date=today.isoformat(), due_time=at_time)
+        # זמן משוער לחלק מהמשימות הפתוחות, כדי שיהיה מה לראות בהדגמה
+        for task in repo.list_tasks(user_id, status="open")[:4]:
+            repo.update_task(user_id, task["id"], estimate_minutes=rng.choice([10, 15, 25, 45]))
         for text, color in (("רעיון: לנסות ללמוד בספרייה", "yellow"), ("לא לשכוח מטען", "pink")):
-            repo.create_note(user_id, text, color)
+            note_id = repo.create_note(user_id, text, color)
+        repo.set_note_pinned(user_id, note_id, True)        # "לא לשכוח מטען" מוצמד למעלה
         repo.create_snooze_entry(user_id, "יש לי מלא דברים בראש, המבחן, העבודה והכביסה")
         return DEMO_EMAIL, DEMO_PASSWORD
     finally:

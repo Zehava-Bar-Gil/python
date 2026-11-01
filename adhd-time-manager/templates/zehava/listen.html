@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="{{ lang }}" dir="{{ t.dir }}" data-theme="{{ theme }}" class="{% if not motion %}no-motion{% endif %}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="{{ 'light dark' if theme == 'auto' else theme }}">
+  <title>TimeFlow · {{ sound_name }}</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Heebo:wght@300;400;500;600;700&display=swap">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/zehava.css') }}">
+</head>
+{% from "zehava/macros.html" import icon, csrf with context %}
+<body class="listen-shell">
+  {# הנגן נשאר כאן, והאתר נטען במסגרת מתחתיו. כל מעבר דף קורה רק בתוך המסגרת, אז המוזיקה לא נעצרת #}
+  <iframe class="listen-frame" name="app" src="{{ page_inside }}" title="TimeFlow"></iframe>
+
+  <aside class="mini-player glass sound-{{ space }}" aria-label="{{ t.player_label }}">
+    <span class="mp-art" aria-hidden="true"><span class="eq"><i></i><i></i><i></i><i></i></span></span>
+    <div class="mp-text">
+      <small>{{ t.now_playing }}</small>
+      <strong lang="en">{{ sound_name }}</strong>
+    </div>
+    {# הנגן של הדפדפן: Play, Pause ועוצמה. מתחיל לבד כי הלחיצה על "להשמיע" הייתה של המשתמשת #}
+    <audio controls autoplay loop aria-label="{{ sound_name }}">
+      <source src="{{ url_for('static', filename='sounds/' ~ space ~ '.ogg') }}" type="audio/ogg; codecs=opus">
+      <source src="{{ url_for('static', filename='sounds/' ~ space ~ '.mp3') }}" type="audio/mpeg">
+    </audio>
+    <div class="mp-actions">
+      <a class="mp-link" href="{{ url_for('zehava.sounds') }}" target="app">{{ icon("headphones", 14) }} {{ t.change_sound }}</a>
+      <form class="inline-form" action="{{ url_for('zehava.listen_stop') }}" method="post" target="_top">
+        {{ csrf() }}<input type="hidden" name="next" value="{{ page_inside }}">
+        <button type="submit" class="mp-stop">{{ icon("pause", 14) }} {{ t.stop_music }}</button>
+      </form>
+    </div>
+  </aside>
+</body>
+</html>

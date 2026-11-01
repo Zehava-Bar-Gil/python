@@ -1,18 +1,13 @@
 """טיימר עגבנייה, מצב מיקוד וה-Soundscape. שני המסכים משתמשים באותו סשן, ולכן אין ספירה כפולה."""
 from datetime import timedelta
 
-from flask import abort, g, redirect, request, url_for
+from flask import abort, g, redirect, request, session, url_for
 
-from .. import clock, focus_timer, journey, planner
-from . import back, bp, form_int, page, repo, say, uid
+from .. import clock, focus_timer, journey, planner, security, ui
+from . import back, bp, form_int, is_framed, page, repo, say, uid
 from .task_views import task_options
 
-SOUND_SPACES = {
-    "deep": "Deep Focus",
-    "calm": "Calm",
-    "study": "Study",
-    "reading": "Reading & Recall",
-}
+SOUND_SPACES = ui.SOUND_SPACES
 BREAK_OFFER_FOR = timedelta(minutes=15)   # כמה זמן אחרי סשן מציעים הפסקה
 
 
@@ -161,3 +156,31 @@ def sound_vote(space, answer):
     if space in SOUND_SPACES and answer in ("yes", "no"):
         repo().add_sound_feedback(uid(), space, answer == "yes")
     return "", 204
+
+
+# ---------- נגן שממשיך בין הדפים ----------
+# בלי JavaScript, מעבר דף עוצר כל צליל. לכן הנגן הוא "מסגרת": הנגן הקטן נשאר בפינה,
+# והאתר עצמו נטען בתוך iframe מתחתיו. כל קישור באתר מחליף רק את מה שבתוך המסגרת, והמוזיקה ממשיכה
+def player_page(target):
+    # רק דף של האתר, ולא הנגן עצמו (כדי שלא ייפתח נגן בתוך נגן)
+    target = security.safe_next(target, "zehava.sounds")
+    return url_for("zehava.sounds") if target.startswith("/zehava/listen") else target
+
+
+@bp.route("/listen/<space>")
+def listen(space):
+    if space not in SOUND_SPACES:
+        abort(404)
+    page_inside = player_page(request.args.get("next"))
+    if is_framed():
+        # כבר בתוך הנגן: לא פותחים נגן נוסף, רק מחליפים את הדף
+        return redirect(page_inside)
+    session["playing"] = space
+    return page("zehava/listen.html", space=space, sound_name=SOUND_SPACES[space], page_inside=page_inside)
+
+
+@bp.route("/listen/stop", methods=["POST"])
+def listen_stop():
+    # עצירה: חוזרים לאותו דף, בלי הנגן
+    session.pop("playing", None)
+    return redirect(player_page(request.form.get("next")))

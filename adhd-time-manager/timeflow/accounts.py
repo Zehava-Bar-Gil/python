@@ -11,6 +11,11 @@ from . import clock, security
 
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 MIN_PASSWORD = 8
+STRONG_PASSWORD = 12
+# סיסמאות ורצפים שמופיעים בראש הרשימות של סיסמאות שדלפו. סיסמה שבנויה מהם נחשבת חלשה
+COMMON_PASSWORDS = ("password", "passw0rd", "qwerty", "qwertyuiop", "asdfgh", "zxcvbn", "iloveyou",
+                    "letmein", "welcome", "admin", "abc123", "monkey", "dragon", "football", "sunshine")
+SEQUENCES = ("0123456789", "9876543210", "abcdefghijklmnopqrstuvwxyz", "qwertyuiop", "asdfghjkl")
 VERIFY_MAX_AGE = 2 * 24 * 3600
 RESET_MAX_AGE = 3600
 LOGIN_LOG_DAYS = timedelta(days=30)
@@ -22,12 +27,30 @@ def normalize_email(email):
     return (email or "").strip().lower()
 
 
+def password_strength(password, email=""):
+    # חלשה, בינונית או חזקה. לפי ההנחיות של NIST (SP 800-63B): אורך חשוב יותר מסוגי תווים,
+    # וסיסמה נפוצה או צפויה חלשה גם כשהיא ארוכה. חלשה לא נשמרת, בינונית וחזקה כן
+    password = password or ""
+    plain = password.lower()
+    core = re.sub(r"[\d\W_]+", "", plain)          # בלי מספרים וסימנים: "Password123!" -> "password"
+    local = email.split("@")[0] if email else ""
+    if (len(password) < MIN_PASSWORD
+            or len(set(plain)) <= 2                          # aaaaaaaa, abababab
+            or any(plain in run for run in SEQUENCES)        # 12345678, abcdefgh
+            or core in COMMON_PASSWORDS or plain in COMMON_PASSWORDS
+            or (local and len(local) >= 3 and local in plain)):
+        return "weak"
+    return "strong" if len(password) >= STRONG_PASSWORD else "medium"
+
+
 def password_errors(password, email=""):
     errors = []
     if len(password or "") < MIN_PASSWORD:
         errors.append("err_password_short")
     elif email and password.strip().lower() == email:
         errors.append("err_password_email")
+    elif password_strength(password, email) == "weak":
+        errors.append("err_password_weak")
     return errors
 
 

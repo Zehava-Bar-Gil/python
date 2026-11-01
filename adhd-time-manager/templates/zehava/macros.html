@@ -50,8 +50,14 @@
 <div class="flashes" role="status">
   {% for kind, message in messages %}
   {% set key, params = message[0], message[1] %}
-  <p class="flash flash-{{ kind }}">{{ t[key].format(**params) if params else t[key] }}
-    {% if dev_mail and key in ("verify_sent", "mail_sent", "forgot_sent") %}<small>{{ t.outbox_note }}</small>{% endif %}</p>
+  {# div ולא p: בתוך p אסור לשים טופס, והכפתור "ביטול" הוא טופס קטן #}
+  <div class="flash flash-{{ kind }}">
+    {% if kind == "ok" %}<span class="flash-icon">{{ icon("check", 14) }}</span>{% endif %}
+    <span class="flash-text">{{ t[key].format(**params) if params else t[key] }}
+    {% if dev_mail and key in ("verify_sent", "mail_sent", "forgot_sent") %}<small>{{ t.outbox_note }}</small>{% endif %}</span>
+    {# משימה שסומנה כבוצעה: אפשר לבטל מיד, בלי לחפש אותה ברשימת "בוצעו" #}
+    {% if key == "task_done_undo" %}{{ action(url_for('zehava.toggle', task_id=params.task_id), t.undo, "flash-undo") }}{% endif %}
+  </div>
   {% endfor %}
 </div>
 {% endif %}
@@ -141,4 +147,83 @@
     <a class="text-link" href="{{ url_for('zehava.insights_data') }}">{{ icon("eye", 15) }} {{ t.see_data }}</a>
   </div>
 </section>
+{% endmacro %}
+
+{# אווטאר מוכן: דמות בקווים פשוטים (בלי פנים, כדי שכל אחת תוכל לזהות בה את עצמה) או סמל מהנוף #}
+{% macro avatar_art(key) %}
+<svg class="avatar-art" viewBox="0 0 64 64" aria-hidden="true">
+  {% if key in ("curls", "long", "bun", "short") %}
+  {% if key == "long" %}<path class="hair" d="M19 29c0-11 5.6-18 13-18s13 7 13 18v18c-3 1.6-6 1.6-8.5 0V31h-9v16c-2.5 1.6-5.5 1.6-8.5 0z"/>{% endif %}
+  {% if key == "curls" %}<g class="hair"><circle cx="21" cy="24" r="6"/><circle cx="43" cy="24" r="6"/><circle cx="19.5" cy="33" r="5.5"/><circle cx="44.5" cy="33" r="5.5"/><circle cx="21" cy="41" r="5"/><circle cx="43" cy="41" r="5"/><circle cx="27" cy="16" r="6.5"/><circle cx="37" cy="16" r="6.5"/></g>{% endif %}
+  {% if key == "bun" %}<circle class="hair" cx="32" cy="11.5" r="6.5"/>{% endif %}
+  <path class="shirt" d="M10 64c1-11 10-18 22-18s21 7 22 18z"/>
+  <path class="neck" d="M27 37h10v9a5 5 0 0 1-10 0z"/>
+  <ellipse class="skin" cx="32" cy="28" rx="10.5" ry="12"/>
+  {% if key == "long" %}<path class="hair" d="M21.4 26c1.6-7.4 5.6-11 10.6-11s9 3.6 10.6 11c-4.6-.8-8.6-3-10.6-6.4-2 3.4-6 5.6-10.6 6.4z"/>{% endif %}
+  {% if key == "curls" %}<g class="hair"><circle cx="26" cy="19" r="4.5"/><circle cx="32" cy="17.5" r="4.5"/><circle cx="38" cy="19" r="4.5"/></g>{% endif %}
+  {% if key == "bun" %}<path class="hair" d="M21.5 27c0-8.4 4.6-13 10.5-13s10.5 4.6 10.5 13c-3-3.8-6.6-5.6-10.5-5.6S24.5 23.2 21.5 27z"/>{% endif %}
+  {% if key == "short" %}<path class="hair" d="M21.2 29c-1-9.6 4.2-16 11.2-16 6.8 0 11.4 5 10.6 14-2.2-3.4-5.4-5.8-9.4-6.8-3 3.4-7.6 6.2-12.4 8.8z"/>{% endif %}
+  {% elif key == "balloon" %}
+  <path class="envelope" d="M32 9c-10 0-17 7.4-17 16.6C15 36 25 42 29 46h6c4-4 14-10 14-20.4C49 16.4 42 9 32 9z"/>
+  <path class="stripe" d="M32 9c-4.6 0-7.4 7.4-7.4 16.6S29 42 30.4 46h3.2c1.4-4 5.8-11.2 5.8-20.4S36.6 9 32 9z"/>
+  <path class="rope" d="M29 46l1 6 M35 46l-1 6"/>
+  <rect class="basket" x="28" y="52" width="8" height="6" rx="1.5"/>
+  {% else %}
+  <circle class="sun" cx="44" cy="20" r="6"/>
+  <path class="peak-back" d="M4 54l16-22 9 12 7-9 24 19z"/>
+  <path class="peak" d="M10 58l20-30 20 30z"/>
+  <path class="snow" d="M30 28l-5.6 8.4 3.2-1.6 2.4 2.4 2.4-2.4 3.2 1.6z"/>
+  <path class="flagpole" d="M30 28V17"/>
+  <path class="flag" d="M30 17h7l-2 2.6 2 2.6h-7z"/>
+  {% endif %}
+</svg>
+{% endmacro %}
+
+{# העיגול של המשתמשת: תמונה, אווטאר, או האות הראשונה של השם #}
+{% macro avatar_face(user) %}
+{% if user.avatar == "photo" %}<img class="avatar-photo" src="{{ url_for('zehava.avatar_photo') }}" alt="" width="40" height="40">
+{% elif user.avatar and user.avatar != "letter" %}{{ avatar_art(user.avatar) }}
+{% else %}{{ name[:1] | upper }}{% endif %}
+{% endmacro %}
+
+{# תאריך בשלוש רשימות (יום, חודש בשם, שנה) במקום שדה התאריך של הדפדפן,
+   שמציג פורמט מעורבב כמו dd/מ"מ/YYYY. value הוא תאריך כמו "2026-10-30" או ריק #}
+{% macro date_selects(name, legend, value, years, autocomplete=none) %}
+{% set parts = (value or "0-0-0").split("-") | map("int") | list %}
+<fieldset class="field date-pick">
+  <legend>{{ legend }} <small>({{ t.optional }})</small></legend>
+  <div class="date-selects">
+    <label class="sr-only" for="{{ name }}-day">{{ t.day }}</label>
+    <select id="{{ name }}-day" name="{{ name }}_day" {% if autocomplete %}autocomplete="{{ autocomplete }}-day"{% endif %}>
+      <option value="">{{ t.day }}</option>
+      {% for d in range(1, 32) %}<option value="{{ d }}" {% if parts[2] == d %}selected{% endif %}>{{ d }}</option>{% endfor %}
+    </select>
+    <label class="sr-only" for="{{ name }}-month">{{ t.month }}</label>
+    <select id="{{ name }}-month" name="{{ name }}_month" {% if autocomplete %}autocomplete="{{ autocomplete }}-month"{% endif %}>
+      <option value="">{{ t.month }}</option>
+      {% for m in t.months %}<option value="{{ loop.index }}" {% if parts[1] == loop.index %}selected{% endif %}>{{ m }}</option>{% endfor %}
+    </select>
+    <label class="sr-only" for="{{ name }}-year">{{ t.year }}</label>
+    <select id="{{ name }}-year" name="{{ name }}_year" {% if autocomplete %}autocomplete="{{ autocomplete }}-year"{% endif %}>
+      <option value="">{{ t.year }}</option>
+      {% for y in years %}<option value="{{ y }}" {% if parts[0] == y %}selected{% endif %}>{{ y }}</option>{% endfor %}
+    </select>
+  </div>
+</fieldset>
+{% endmacro %}
+
+{# שדה סיסמה חדשה עם מד חוזק. בלי JavaScript: pattern מסמן סיסמה של 12 תווים ומעלה כ"חזקה",
+   ו-CSS מחליף את הצבע והמשפט תוך כדי הקלדה. הבדיקה המלאה (חלשה, בינונית, חזקה) נעשית בשרת.
+   הטופס שמשתמש בשדה צריך novalidate, כדי שסיסמה בינונית תישלח ולא תיחסם בדפדפן #}
+{% macro new_password(name="password", field="password", autofocus=false) %}
+<div class="pw-field">
+  <input id="{{ field }}" type="password" name="{{ name }}" autocomplete="new-password" required placeholder=" "
+         pattern=".{12,}" aria-describedby="{{ field }}-hint" {% if autofocus %}autofocus{% endif %}>
+  <span class="pw-meter" aria-hidden="true"><span></span></span>
+  <small id="{{ field }}-hint" class="pw-hint muted">
+    <span class="pw-empty">{{ t.password_hint }}</span>
+    <span class="pw-not-yet">{{ t.pw_live_not_yet }}</span>
+    <span class="pw-strong">{{ t.pw_live_strong }}</span>
+  </small>
+</div>
 {% endmacro %}

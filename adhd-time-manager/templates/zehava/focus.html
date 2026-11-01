@@ -18,7 +18,7 @@
     <header class="focus-head">
       <span class="badge">{{ icon("focus", 16) }} {{ t.focus_mode }} · {{ t.dnd }}</span>
       {% if settings.sound_pref != "none" %}
-      <a class="icon-btn" href="{{ url_for('zehava.sounds') }}" target="_blank" rel="noopener" aria-label="{{ t.open_sounds }}" title="{{ t.open_sounds }}">{{ icon("headphones", 18) }}</a>
+      <a class="icon-btn" href="{{ url_for('zehava.sounds') }}" aria-label="{{ t.sounds }}" title="{{ t.sounds }}">{{ icon("headphones", 18) }}</a>
       {% endif %}
     </header>
 
@@ -45,6 +45,10 @@
     {% else %}
     <p class="focus-ask">{{ t.focus_how_long }}</p>
     <div class="focus-options">
+      {# אם למשימה יש זמן משוער, אפשר להתחיל בדיוק לפיו #}
+      {% if task and task.estimate_minutes %}
+      {{ action(url_for('zehava.focus_start', minutes=task.estimate_minutes), t.focus_by_estimate.format(time=est_label(task.estimate_minutes)), "btn btn-soft btn-estimate", "clock", extra={"task_id": task.id}) }}
+      {% endif %}
       {{ action(url_for('zehava.focus_start', minutes=5), t.start_small, "btn btn-small-start", "play", extra={"task_id": task.id} if task else none) }}
       <div class="focus-times">
         {% for m in quick %}
@@ -61,7 +65,7 @@
       <h2>{{ icon("steps", 16) }} {{ t.steps }}</h2>
       <ul class="step-list">
         {% for step in task.steps %}
-        <li class="step {% if step.done_at %}done{% endif %}">
+        <li class="step {% if step.done_at %}done{% endif %} {% if just == ['step', step.id] %}just{% endif %}">
           {{ action(url_for('zehava.step_toggle', task_id=task.id, step_id=step.id), "✓", "step-check", aria=t.mark_done ~ ": " ~ step.title) }}
           <span dir="auto">{{ step.title }}</span>
           {{ action(url_for('zehava.step_delete', task_id=task.id, step_id=step.id), "✕", "remove", aria=t.delete ~ ": " ~ step.title) }}

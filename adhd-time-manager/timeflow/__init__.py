@@ -10,7 +10,7 @@ from pathlib import Path
 import click
 from flask import g, has_request_context, jsonify, render_template, request
 
-from . import clock, db, focus_timer, mailer, security
+from . import avatars, clock, db, focus_timer, mailer, security
 from .config import build_config
 from .repository import Repository
 from .views import PUBLIC, bp, common_context, say
@@ -50,6 +50,9 @@ def before_request():
     repo = Repository(db.get_db())
     g.repo = repo
     security.load_user(repo)
+    if request.endpoint in ("zehava.settings", "zehava.photo_delete") and request.method == "POST":
+        # רק בטופס ההגדרות אפשר להעלות תמונת פרופיל, ולכן רק שם הגבול גדול יותר
+        request.max_content_length = avatars.MAX_UPLOAD + 256 * 1024
     security.check_csrf()
     blocked = security.login_redirect(PUBLIC)
     if blocked or g.user is None:

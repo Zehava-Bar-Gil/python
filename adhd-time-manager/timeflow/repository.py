@@ -12,13 +12,14 @@ import sqlite3
 from . import clock
 
 SETTINGS_FIELDS = {
-    "lang", "theme", "reduce_motion", "sound_pref", "timer_chime", "focus_minutes",
+    "lang", "address", "theme", "theme_by_clock", "reduce_motion", "sound_pref", "timer_chime", "focus_minutes",
     "short_break_minutes", "long_break_minutes", "notifications", "calm_mode",
     "pulse_enabled", "learning_enabled", "learning_consent_at", "ai_enabled",
     "daily_email", "daily_email_at", "goal_text",
 }
-TASK_FIELDS = {"title", "details", "tag", "priority", "due_date", "due_time"}
+TASK_FIELDS = {"title", "details", "tag", "priority", "due_date", "due_time", "estimate_minutes"}
 NOTE_FIELDS = {"body", "color", "tag"}
+PROFILE_FIELDS = {"display_name", "first_name_he", "first_name_en", "last_name_he", "last_name_en", "birthday", "avatar"}
 
 
 def _dict(row):
@@ -46,10 +47,12 @@ class Repository:
     # ---------- משתמשות ----------
     def create_user(self, email, display_name, password_hash, lang="he"):
         now = clock.now_iso()
+        # השם מההרשמה הוא גם השם הפרטי בשפה שבה נרשמה. את השפה השנייה אפשר להוסיף בהגדרות
+        name_column = "first_name_he" if lang == "he" else "first_name_en"
         with self.conn:
             cur = self.conn.execute(
-                "INSERT INTO users (email, display_name, password_hash, created_at, updated_at)"
-                " VALUES (?, ?, ?, ?, ?)", (email, display_name, password_hash, now, now))
+                f"INSERT INTO users (email, display_name, {name_column}, password_hash, created_at, updated_at)"
+                " VALUES (?, ?, ?, ?, ?, ?)", (email, display_name, display_name, password_hash, now, now))
             user_id = cur.lastrowid
             self.conn.execute("INSERT INTO user_settings (user_id, lang, updated_at) VALUES (?, ?, ?)",
                               (user_id, lang, now))
@@ -75,6 +78,46 @@ class Repository:
     def update_display_name(self, user_id, display_name):
         self._write("UPDATE users SET display_name = ?, updated_at = ? WHERE id = ?",
                     (display_name, clock.now_iso(), user_id))
+
+    def update_profile(self, user_id, **fields):
+        # פרופיל: שמות בשתי השפות, יום הולדת ואווטאר. display_name נשאר השם הכללי (למשל במייל)
+        fields = {key: value for key, value in fields.items() if key in PROFILE_FIELDS}
+        if not fields:
+            return
+        columns = ", ".join(f"{key} = ?" for key in fields)
+        self._write(f"UPDATE users SET {columns}, updated_at = ? WHERE id = ?",
+                    (*fields.values(), clock.now_iso(), user_id))
+
+    def get_avatar_photo(self, user_id):
+        row = self._one("SELECT data FROM avatar_photos WHERE user_id = ?", (user_id,))
+        return row["data"] if row else None
+
+    def set_avatar_photo(self, user_id, data):
+        now = clock.now_iso()
+        with self.conn:
+            self.conn.execute("INSERT INTO avatar_photos (user_id, data, updated_at) VALUES (?, ?, ?)"
+                              " ON CONFLICT (user_id) DO UPDATE SET data = excluded.data, updated_at = excluded.updated_at",
+                              (user_id, data, now))
+            self.conn.execute("UPDATE users SET avatar = 'photo', updated_at = ? WHERE id = ?", (now, user_id))
+
+    def delete_avatar_photo(self, user_id):
+        with self.conn:
+            self.conn.execute("DELETE FROM avatar_photos WHERE user_id = ?", (user_id,))
+            self.conn.execute("UPDATE users SET avatar = 'letter', updated_at = ? WHERE id = ? AND avatar = 'photo'",
+                              (clock.now_iso(), user_id))
+
+    def get_wish(self, user_id, year):
+        return self._one("SELECT * FROM birthday_wishes WHERE user_id = ? AND year = ?", (user_id, year))
+
+    def save_wish(self, user_id, year, body):
+        # משאלה אחת לכל שנה: כתיבה נוספת באותה שנה מעדכנת אותה
+        now = clock.now_iso()
+        self._write("INSERT INTO birthday_wishes (user_id, year, body, created_at, updated_at) VALUES (?, ?, ?, ?, ?)"
+                    " ON CONFLICT (user_id, year) DO UPDATE SET body = excluded.body, updated_at = excluded.updated_at",
+                    (user_id, year, body, now, now))
+
+    def list_wishes(self, user_id):
+        return self._all("SELECT * FROM birthday_wishes WHERE user_id = ? ORDER BY year DESC", (user_id,))
 
     def delete_user(self, user_id):
         # כל הנתונים האישיים נמחקים יחד עם המשתמשת (ON DELETE CASCADE)
@@ -108,12 +151,12 @@ class Repository:
         return self._one("SELECT * FROM tasks WHERE id = ? AND user_id = ?", (task_id, user_id))
 
     def create_task(self, user_id, title, tag="", priority="normal", due_date=None, due_time=None,
-                    details="", source="manual"):
+                    details="", source="manual", estimate_minutes=None):
         now = clock.now_iso()
         cur = self._write(
-            "INSERT INTO tasks (user_id, title, details, tag, priority, due_date, due_time, source,"
-            " created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-            (user_id, title, details, tag, priority, due_date, due_time, source, now, now))
+            "INSERT INTO tasks (user_id, title, details, tag, priority, due_date, due_time, estimate_minutes, source,"
+            " created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (user_id, title, details, tag, priority, due_date, due_time, estimate_minutes, source, now, now))
         return cur.lastrowid
 
     def update_task(self, user_id, task_id, **fields):
@@ -194,9 +237,11 @@ class Repository:
 
     # ---------- פתקים ----------
     def list_notes(self, user_id, tag=None):
+        # פתק מוצמד תמיד ראשון, ואחריו החדשים
         if tag:
-            return self._all("SELECT * FROM notes WHERE user_id = ? AND tag = ? ORDER BY id DESC", (user_id, tag))
-        return self._all("SELECT * FROM notes WHERE user_id = ? ORDER BY id DESC", (user_id,))
+            return self._all("SELECT * FROM notes WHERE user_id = ? AND tag = ? ORDER BY pinned DESC, id DESC",
+                             (user_id, tag))
+        return self._all("SELECT * FROM notes WHERE user_id = ? ORDER BY pinned DESC, id DESC", (user_id,))
 
     def get_note(self, user_id, note_id):
         return self._one("SELECT * FROM notes WHERE id = ? AND user_id = ?", (note_id, user_id))
@@ -214,6 +259,11 @@ class Repository:
         columns = ", ".join(f"{key} = ?" for key in fields)
         cur = self._write(f"UPDATE notes SET {columns}, updated_at = ? WHERE id = ? AND user_id = ?",
                           (*fields.values(), clock.now_iso(), note_id, user_id))
+        return cur.rowcount == 1
+
+    def set_note_pinned(self, user_id, note_id, pinned):
+        cur = self._write("UPDATE notes SET pinned = ?, updated_at = ? WHERE id = ? AND user_id = ?",
+                          (1 if pinned else 0, clock.now_iso(), note_id, user_id))
         return cur.rowcount == 1
 
     def delete_note(self, user_id, note_id):
@@ -293,6 +343,10 @@ class Repository:
             sql += " AND created_at >= ? AND created_at < ?"
             params += [start_iso, end_iso]
         return self._one(sql, params)["total"]
+
+    def last_journey_at(self, user_id):
+        # מתי הייתה הפעילות האמיתית האחרונה (משימה, צעד או סשן). None אם עוד לא הייתה
+        return self._one("SELECT MAX(created_at) AS last FROM journey_events WHERE user_id = ?", (user_id,))["last"]
 
     def get_shown_points(self, user_id):
         row = self._one("SELECT shown_points FROM journey_state WHERE user_id = ?", (user_id,))
@@ -417,7 +471,7 @@ class Repository:
         return self._one("SELECT * FROM email_log WHERE user_id = ? AND kind = 'daily' AND day = ?", (user_id, day))
 
     def users_with_daily_email(self):
-        return self._all("SELECT u.id, u.email, u.display_name, s.lang, s.daily_email_at FROM users u"
+        return self._all("SELECT u.id, u.email, u.display_name, u.first_name_he, u.first_name_en, s.lang, s.daily_email_at FROM users u"
                          " JOIN user_settings s ON s.user_id = u.id"
                          " WHERE s.daily_email = 1 AND u.email_verified_at IS NOT NULL")
 
@@ -501,8 +555,10 @@ class Repository:
         user.pop("password_hash", None)
         data = {"user": user, "settings": self.get_settings(user_id)}
         for table in ("tasks", "task_steps", "notes", "focus_sessions", "journey_events", "daily_pulse",
-                      "insights", "sound_feedback", "snooze_entries", "ai_requests", "email_log", "calendar_events"):
+                      "insights", "sound_feedback", "snooze_entries", "ai_requests", "email_log", "calendar_events",
+                      "birthday_wishes"):
             data[table] = self._all(f"SELECT * FROM {table} WHERE user_id = ? ORDER BY id", (user_id,))
+        data["avatar_photo"] = {"saved": self.get_avatar_photo(user_id) is not None}   # התמונה עצמה לא נכנסת ל-JSON
         account = self.get_google_account(user_id)
         data["google_calendar"] = {"connected": bool(account),
                                    "scope": account["scope"] if account else None,

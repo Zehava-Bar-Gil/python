@@ -10,6 +10,7 @@ POINTS = {"task": 3, "step": 1, "session": 1}
 POINTS_PER_STATION = 4
 STATIONS = 6                                   # 6 נקודות על השביל, האחרונה היא הפסגה
 POINTS_PER_CLIMB = POINTS_PER_STATION * STATIONS
+DAILY_POINTS = 2 * POINTS_PER_STATION          # "יום מואר": למשל שתי משימות ושני צעדים קטנים
 # גובה הכדור בשביל (אחוז מגובה התמונה) בכל תחנה, מתחתית השביל ועד הפסגה
 BALLOON_TOPS = [76, 72, 66, 57.5, 51, 45, 40]
 
@@ -54,6 +55,13 @@ def view(repo, user_id):
     if shown != points:
         repo.set_shown_points(user_id, points)
     return {**now_pos, "from_top": before["top"], "summit_reached": summit}
+
+
+def day_light(points_today):
+    # האור של היום: כמה מהיום "הודלק" בפעילות אמיתית. לא יורד, ולא נענשים על יום שקט
+    pct = min(100, points_today * 100 // DAILY_POINTS)
+    stage = "start" if points_today == 0 else "full" if pct == 100 else "going"
+    return {"points": points_today, "goal": DAILY_POINTS, "pct": pct, "level": pct / 100, "stage": stage}
 
 
 def stations_reached(repo, user_id, day):

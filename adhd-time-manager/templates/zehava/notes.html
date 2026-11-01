@@ -49,10 +49,14 @@
 
 <div class="notes notes-page">
   {% for note in notes %}
-  <article class="note note-{{ note.color }}" id="note-{{ note.id }}">
+  <article class="note note-{{ note.color }} {% if note.pinned %}pinned{% endif %} {% if just == ['note', note.id] %}just{% endif %}" id="note-{{ note.id }}">
+    {% if note.pinned %}<span class="sr-only">{{ t.pinned }}: </span>{% endif %}
     <p dir="auto">{{ note.body }}</p>
     {% if note.tag %}<span class="note-tag" dir="auto">#{{ note.tag }}</span>{% endif %}
     <div class="note-tools">
+      {# הצמדה: פתק חשוב תמיד ראשון #}
+      {{ action(url_for('zehava.note_pin', note_id=note.id), none, "note-x note-pin" ~ (" on" if note.pinned else ""), "pin",
+                anchor="note-" ~ note.id, aria=t.unpin if note.pinned else t.pin) }}
       <a class="note-x" href="{{ url_for('zehava.note_edit', note_id=note.id) }}" aria-label="{{ t.edit }}" title="{{ t.edit }}">{{ icon("edit", 13) }}</a>
       {{ confirm_delete(url_for('zehava.note_delete', note_id=note.id)) }}
     </div>

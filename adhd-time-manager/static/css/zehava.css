@@ -16,16 +16,29 @@
   /* גוונים משלימים */
   --deep: #35658f;          /* כחול עמוק לכפתורים ולוי */
   --ink: #1f2d3a;           /* טקסט ראשי */
-  --ink-soft: #5d6d7c;      /* טקסט משני */
+  --ink-soft: #536373;      /* טקסט משני (כהה מעט יותר, לניגודיות של 4.5:1 לפחות) */
   --line: rgba(31, 45, 58, 0.08);
   --coral: #ef8a6f;         /* טבעת העגבנייה */
   --gold: #f6c58f;
   --baby-pink: #f9dbe4;
+  --lavender: #c8c2e8;      /* גוון משני: מסגרות, הדגשות עדינות */
+  --cream: #fbf7f0;         /* גוון משני: רקעים חמים */
+  --day-glow-color: rgba(255, 205, 140, 0.5); /* האור של היום: הילה זהובה מעל ההר */
 
-  --radius: 22px;
+  /* Design Tokens: רדיוסים, צללים ותנועה. כל הקובץ קורא מכאן, כדי ששינוי אחד ישפיע בכל מקום */
+  --radius: 22px;           /* כרטיסים */
+  --radius-sm: 14px;        /* שדות, תגיות גדולות */
+  --radius-xs: 12px;        /* כפתורים קטנים */
+  --radius-pill: 999px;     /* גלולות */
   --nav-h: 72px;
   --side-w: 156px;
-  --shadow: 0 12px 32px rgba(31, 45, 58, 0.14);
+  --shadow: 0 12px 32px rgba(31, 45, 58, 0.14);        /* צל רגיל של כרטיס */
+  --shadow-soft: 0 6px 16px rgba(31, 45, 58, 0.1);     /* צל קטן לרכיבים בתוך כרטיס */
+  --shadow-lift: 0 20px 44px rgba(31, 45, 58, 0.2);    /* צל של כרטיס שמתרומם ב-Hover */
+  --border-lift: rgba(255, 255, 255, 0.95);            /* מסגרת מודגשת ב-Hover */
+  --ease-soft: cubic-bezier(0.3, 0.7, 0.25, 1);        /* האטה רכה בסוף התנועה */
+  --motion-fast: 0.2s;      /* מעברי צבע ורקע */
+  --motion: 0.35s;          /* תנועה של כרטיסים */
 
   /* גודל תמונת הרקע: תמיד מכסה את הרוחב, והפסגה נשארת למעלה */
   --sw: max(100vw, 160vh);
@@ -39,7 +52,7 @@
   --field-border: rgba(31, 45, 58, 0.14);
   --accent-text: var(--deep);
   --forest-text: var(--forest);
-  --warn-text: #8a5a32;
+  --warn-text: #7d5029;     /* כהה מעט יותר, לניגודיות */
   --warn-bg: rgba(244, 215, 193, 0.75);
   --ok-bg: rgba(220, 239, 230, 0.92);
   --danger: #b3474f;
@@ -144,7 +157,7 @@ button { cursor: pointer; }
   align-items: center;
   gap: 7px;
   padding: 6px 13px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   font-size: 13px;
   font-weight: 500;
   color: #fff;
@@ -303,7 +316,7 @@ button { cursor: pointer; }
   align-items: center;
   gap: 9px;
   padding: 10px 14px;
-  border-radius: 12px;
+  border-radius: var(--radius-xs);
   font-size: 14px;
   font-weight: 500;
   white-space: nowrap;
@@ -350,7 +363,7 @@ button { cursor: pointer; }
   align-items: center;
   gap: 6px;
   padding: 7px 14px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   font-size: 13px;
   font-weight: 500;
   border: 1px solid rgba(255, 255, 255, 0.55);
@@ -377,13 +390,13 @@ button { cursor: pointer; }
   -webkit-backdrop-filter: blur(16px) saturate(140%);
   backdrop-filter: blur(16px) saturate(140%);
 }
-.side ul { display: grid; gap: 14px; margin: 0; padding: 0; list-style: none; }
+.side ul { display: grid; gap: 14px; margin: 0; padding: 0; list-style: none; }   /* מרווח שווה בין הקישורים */
 .side a {
   display: flex;
   align-items: center;
   gap: 12px;
   padding: 11px 14px;
-  border-radius: 14px;
+  border-radius: var(--radius-sm);
   font-size: 14px;
   font-weight: 500;
   opacity: 0.88;
@@ -404,6 +417,7 @@ button { cursor: pointer; }
   opacity: 0.85;
 }
 .side-quote .icon { margin-bottom: 8px; opacity: 0.8; }
+
 /* מחשב: הסרגל הצדדי מוסתר בצד המסך, ונפתח רק כשמרחפים עליו או מגיעים אליו עם Tab */
 @media (min-width: 1001px) {
   .side {
@@ -438,7 +452,11 @@ button { cursor: pointer; }
   margin-inline-start: var(--side-w);
   padding: 0 28px 48px;
 }
-  /* Footer: זכויות בצד אחד, משפט מוטיבציה בצד השני */
+/* כל הדפים חוץ מדף הבית: אותו מרווח משני הצדדים, כך שהתוכן באמצע המסך ולא נוטה לצד */
+.main.page { margin-inline: var(--side-w); }
+.page .narrow, .page .page-head:has(+ .narrow) { width: min(720px, 100%); margin-inline: auto; }   /* דפים צרים (עריכת משימה, פרטיות): גם הכותרת וגם הכרטיס באמצע */
+
+/* Footer: זכויות בצד אחד, משפט מוטיבציה בצד השני */
 .site-footer {
   position: relative;
   z-index: 3;                           /* מתחת לסרגל הצדדי: כשהוא נפתח, הוא מכסה את קצה ה-Footer */
@@ -467,14 +485,13 @@ button { cursor: pointer; }
 @media (min-width: 1001px) {
   .site-footer { position: sticky; bottom: 0; height: var(--nav-h); }
   /* בדף קצר התוכן ממלא לפחות את גובה המסך, כדי שה-Footer יישאר בתחתית ולא יעלה למעלה */
-  .main { min-height: calc(100vh - 2 * var(--nav-h)); }  
+  .main { min-height: calc(100vh - 2 * var(--nav-h)); }
   .side {
     top: calc(var(--nav-h) + 4px);      /* מרווח קטן (בערך מילימטר) מתחת לתפריט העליון */
     bottom: calc(var(--nav-h) + 4px);   /* ואותו מרווח מעל ה-Footer */
     border-end-end-radius: 30px;
   }
 }
-
 
 .hero {
   display: flex;
@@ -495,8 +512,13 @@ button { cursor: pointer; }
   font-weight: 600;
   letter-spacing: -0.015em;
 }
-.greeting h1 .icon { color: var(--gold); filter: drop-shadow(0 0 10px rgba(246, 197, 143, 0.7)); }
+/* האייקון של הברכה: קו דק ושקוף בצבע הטקסט, כמו בתפריט, ואחרי המילים */
+.greeting h1 .day-icon { display: inline-flex; }
+.greeting h1 .icon { color: inherit; filter: drop-shadow(0 2px 10px rgba(20, 40, 60, 0.35)); }
+/* בלילה הירח מקבל הילה חמימה עדינה, כמו אור של ירח */
+.greeting h1 .day-night .icon { filter: drop-shadow(0 0 6px rgba(255, 226, 150, 0.85)) drop-shadow(0 0 14px rgba(255, 214, 120, 0.45)); }
 .greeting p { margin: 10px 0 0; font-size: clamp(16px, 1.3vw, 19px); opacity: 0.95; }
+
 
 /* היעד הגדול (הפסגה): אפשר לשנות אותו בכל רגע */
 .goal {
@@ -540,6 +562,580 @@ button { cursor: pointer; }
 .goal .bar { background: rgba(20, 40, 60, 0.22); }
 .goal .bar span { background: linear-gradient(90deg, var(--sunset), #fff); }
 
+/* ---------- 6א. שלושת הצעדים הבאים: קלפים שנפתחים בהדרגה ----------
+   בהשראת סליידר קלפים: שלושה קלפים בשורה, האמצעי גדול יותר.
+   כל קלף הוא details: לחיצה על הקלף פותחת אותו למטה ומראה את הצעד הקטן. בלי JavaScript. */
+.deck-wrap { margin: 6px 0 30px; }
+.deck-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 14px; margin-bottom: 4px; }
+.deck-head .section-title { margin: 0; }
+.deck-head small { color: #fff; font-size: 13.5px; opacity: 0.9; text-shadow: 0 2px 10px rgba(20, 40, 60, 0.4); }
+.deck {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;             /* קלף שנפתח גדל למטה, והשכנים לא זזים */
+  gap: 22px;
+  margin: 0;
+  padding: 18px 4px 24px;
+  list-style: none;
+}
+.deck-item {
+  flex: 0 1 300px;
+  position: relative;
+  min-width: 0;
+  transition: scale var(--motion) var(--ease-soft);
+}
+/* הקלף האמצעי גדול יותר, כמו בסליידר */
+.deck-item:nth-child(2):not(:last-child) { flex-basis: 330px; scale: 1.06; z-index: 1; }
+
+.deck-card { display: block; overflow: hidden; }
+/* צבע אטום מתחת לזכוכית, כמו שהיה לקלפים: השביל וההר מאחור לא מבצבצים דרך הטקסט */
+.glass.deck-card { background-color: var(--surface-strong); background-image: var(--glass-bg); }
+.deck-front {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  min-height: 200px;
+  padding: 22px 24px;
+  list-style: none;
+  cursor: pointer;
+  border-radius: var(--radius);
+}
+.deck-front::-webkit-details-marker { display: none; }
+.deck-front:focus-visible { outline: 3px solid var(--focus-ring); outline-offset: -3px; }
+
+.deck-num { font-size: 12.5px; font-weight: 600; letter-spacing: 0.04em; color: var(--ink-soft); }
+.deck-task { font-size: 18px; font-weight: 600; line-height: 1.35; color: var(--ink); overflow-wrap: anywhere; }
+.deck-more {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: auto;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--accent-text);
+}
+.deck-more .icon { transition: rotate var(--motion) var(--ease-soft); }
+/* שתי כתוביות: אחת לקלף סגור ואחת לפתוח */
+.deck-card .when-open, .deck-card[open] .when-closed { display: none; }
+.deck-card[open] .when-open { display: inline; }
+.deck-card[open] .deck-more .icon { rotate: 180deg; }
+
+/* החלק שנפתח: הצעד הקטן וכפתור "להתחיל בקטן", על רקע בגוון שקיעה */
+.deck-step {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px 24px 22px;
+  border-top: 1px solid var(--glass-border);
+  background: linear-gradient(160deg, var(--warn-bg), transparent 80%);
+}
+.deck-card[open] .deck-step { animation: unfold var(--motion) var(--ease-soft); }
+@keyframes unfold { from { opacity: 0; translate: 0 -8px; } }
+/* בדפדפנים חדשים גם הגובה נפתח בהדרגה, ולא בבת אחת */
+@supports (interpolate-size: allow-keywords) {
+  .deck-card { interpolate-size: allow-keywords; }
+  .deck-card::details-content {
+    block-size: 0;
+    overflow: hidden;
+    transition: block-size var(--motion) var(--ease-soft), content-visibility var(--motion) allow-discrete;
+  }
+  .deck-card[open]::details-content { block-size: auto; }
+}
+
+/* ---------- 6ב. כרטיסים צפים ----------
+   מעבר עכבר מרים את הכרטיס קצת למעלה עם צל עמוק יותר, כאילו הוא מרחף מעל הנוף.
+   משתמשים ב-translate ולא ב-transform, כדי לא להתנגש באנימציית הכניסה בגלילה.
+   רק במכשירים עם עכבר: בטלפון אין hover, והכרטיס לא "נתקע" למעלה אחרי נגיעה. */
+.card, .deck-card {
+  transition:
+    translate var(--motion) var(--ease-soft),
+    box-shadow var(--motion) var(--ease-soft),
+    border-color var(--motion) var(--ease-soft);
+}
+@media (hover: hover) {
+  .deck-front:hover .deck-more { text-decoration: underline; text-underline-offset: 3px; }
+  .card:hover, .deck-card:hover {
+    translate: 0 -4px;
+    border-color: var(--border-lift);
+    box-shadow: var(--shadow-lift), inset 0 1px 0 var(--glass-inset);
+  }
+}
+/* במקלדת: כשהפוקוס בתוך כרטיס, הוא מקבל את אותו צל (בלי לזוז, כדי לא להסיח בזמן הקלדה) */
+.deck-card:has(.deck-front:focus-visible) { box-shadow: var(--shadow-lift), inset 0 1px 0 var(--glass-inset); }
+
+/* ---------- 6ג. תמונה בתוך תמונה, והאור של היום ----------
+   בכרטיס "עכשיו" יש חלון קטן אל הפסגה. --day הוא ההתקדמות של היום (0 עד 1), והוא מגיע מהשרת:
+   הכדור עולה בחלון, הנוף בחלון מתבהר, והתג הקטן שבפינה מתמלא. בלי JavaScript. */
+.now-window {
+  position: relative;
+  height: 104px;
+  margin: 0 0 12px;
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-soft), inset 0 0 0 1px var(--border-lift);
+}
+/* הנוף עצמו בשכבה נפרדת, כדי שהבהירות תשפיע רק עליו ולא על התג והטקסט */
+.now-window::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background:
+    linear-gradient(180deg, transparent 45%, rgba(25, 42, 58, 0.5)),
+    url("../img/sky-mountain.jpg") 70% 34% / 260% auto;
+  /* הנוף מתבהר ככל שהיום מתקדם. במצב כהה הוא קצת עמום יותר (--window-dim) */
+  filter: brightness(calc((0.9 + var(--day) * 0.22) * var(--window-dim))) saturate(calc(0.9 + var(--day) * 0.3));
+  transition: filter var(--motion) var(--ease-soft);
+}
+/* הפסגה תמיד בצד שבו מתחילים לקרוא, והכדור טס אליה. באנגלית התמונה בחלון הפוכה */
+[dir="ltr"] .now-window::before { transform: scaleX(-1); }
+.now-balloon {
+  position: absolute;
+  width: 26px;
+  /* מלמטה, ליד התג, ועד קרוב לפסגה, לפי ההתקדמות */
+  inset-inline-end: calc(16% + var(--day) * 52%);
+  top: calc(52% - var(--day) * 40%);
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.25));
+  animation: float 6s ease-in-out infinite alternate;
+}
+.now-window-text {
+  position: absolute;
+  inset-inline: 14px 70px;
+  bottom: 10px;
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.3;
+  color: #fff;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.45);
+}
+/* התג הקטן שמונח על הפינה: טבעת שמתמלאת (conic-gradient) ובאמצע האחוז */
+.day-chip {
+  position: absolute;
+  inset-inline-end: -10px;
+  bottom: -14px;
+  display: grid;
+  place-items: center;
+  width: 58px;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: var(--surface-strong);
+  box-shadow: var(--shadow-lift);
+}
+.day-ring {
+  position: absolute;
+  inset: 5px;
+  border-radius: 50%;
+  background: conic-gradient(var(--gold) 0, var(--coral) calc(var(--pct) * 1%), var(--track) 0);
+  /* חור באמצע, כך שנשארת רק טבעת */
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 5px), #000 calc(100% - 4px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 5px), #000 calc(100% - 4px));
+}
+.day-num { position: relative; font-size: 12.5px; font-weight: 700; color: var(--ink); }
+.day-full .day-ring { background: conic-gradient(var(--gold), var(--coral), var(--gold)); }
+
+/* האור של היום ברקע: הילה חמה מעל ההר. ב-0 הרקע נראה בדיוק כמו קודם */
+.day-glow {
+  position: absolute;
+  z-index: 1;                          /* מעל שכבת הלילה, כדי שהאור ייראה גם במצב כהה */
+  inset: 0;
+  opacity: calc(var(--day) * 0.9);
+  background: radial-gradient(ellipse 65% 50% at 45% 32%, var(--day-glow-color), transparent 72%);
+  mix-blend-mode: screen;
+  pointer-events: none;
+  transition: opacity 1.2s var(--ease-soft);
+  -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 7%, #000 80%, transparent 100%);
+  mask-image: linear-gradient(180deg, transparent 0, #000 7%, #000 80%, transparent 100%);
+}
+
+/* ---------- 6ד. מיקרו-אינטראקציות: משוב קטן ועדין אחרי פעולה ----------
+   בלי JavaScript: השרת מסמן מה השתנה עכשיו (class="just"), וה-CSS מנגן אנימציה קצרה אחת.
+   בטעינה הבאה הסימון כבר לא קיים, ולכן האנימציה לא חוזרת. */
+
+/* הודעה אחרי פעולה: נכנסת בעדינות, ו-✓ "נכתב" בתוך עיגול */
+.flash { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; animation: flash-in var(--motion) var(--ease-soft); }
+.flash-text { flex: 1; min-width: 0; }
+.flash-icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  color: #fff;
+  background: var(--forest);
+}
+.flash-icon .icon { stroke-width: 2.4; }
+.flash-icon path { stroke-dasharray: 24; animation: draw 0.5s 0.15s var(--ease-soft) both; }
+.flash-undo {
+  padding: 4px 12px;
+  border-radius: var(--radius-pill);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--forest-text);
+  background: var(--surface-soft);
+  border: 1px solid var(--field-border);
+  cursor: pointer;
+}
+.flash-undo:hover { background: var(--surface-strong); }
+@keyframes flash-in { from { opacity: 0; translate: 0 -6px; } }
+@keyframes draw { from { stroke-dashoffset: 24; } }
+
+/* משימה או צעד שסומנו עכשיו: ה-✓ "קופץ" קצת, והשורה נדלקת לרגע ונרגעת */
+.task.just { animation: just-glow 1.6s var(--ease-soft); }
+.task.just .check, .step.just .step-check { animation: check-pop 0.45s var(--ease-soft); }
+@keyframes just-glow { from { background: var(--ok-bg); } }
+@keyframes check-pop { 0% { scale: 0.6; } 60% { scale: 1.18; } 100% { scale: 1; } }
+
+/* פתק שנשמר עכשיו: "נוחת" על הלוח, עם הילה רכה */
+.note.just { animation: note-settle 0.6s var(--ease-soft), note-glow 1.8s var(--ease-soft); }
+@keyframes note-settle { from { opacity: 0; translate: 0 -14px; scale: 0.96; } }
+@keyframes note-glow { from { box-shadow: 0 0 0 6px rgba(246, 197, 143, 0.55), 0 14px 24px rgba(31, 45, 58, 0.16); } }
+
+/* בדף הבית: כשנצברו נקודות עכשיו, התג של "האור של היום" פועם פעמיים */
+.day-chip.just { animation: chip-pulse 1.2s var(--ease-soft) 2; }
+@keyframes chip-pulse {
+  0% { box-shadow: var(--shadow-lift), 0 0 0 0 rgba(239, 138, 111, 0.55); }
+  100% { box-shadow: var(--shadow-lift), 0 0 0 12px rgba(239, 138, 111, 0); }
+}
+
+/* ---------- 6ה. זמן משוער, פתק מוצמד והודעה לפי מצב ---------- */
+
+/* זמן משוער: תגית קטנה עם שעון. צבע רך, כדי שלא ילחיץ */
+.est {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 9px;
+  border-radius: var(--radius-pill);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent-text);
+  background: rgba(200, 194, 232, 0.35);
+  white-space: nowrap;
+}
+.task-meta .est { margin-inline-start: 4px; }
+.now .est { justify-self: start; }
+.est-total {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: -4px 0 0;
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+.btn-estimate { border: 1px solid var(--lavender); }
+
+/* פתק מוצמד: עומד ישר, עם נעץ עגול למעלה */
+.note.pinned, .note.pinned:nth-child(even) { transform: rotate(0); }
+.note.pinned::before {
+  content: "";
+  position: absolute;
+  top: -7px;
+  left: 50%;
+  width: 14px;
+  height: 14px;
+  translate: -50% 0;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #ffb3a7, var(--coral) 60%, #c4614a);
+  box-shadow: 0 3px 5px rgba(31, 45, 58, 0.3);
+}
+.note-pin.on { opacity: 1; color: var(--coral); background: rgba(255, 255, 255, 0.8); }
+.note-tools .note-pin.on { opacity: 1; }
+
+/* הודעה לפי מצב: מחליפה את ההבטחה הרגילה, עם קו לבנדר עדין בצד */
+.greeting .motivation {
+  padding-inline-start: 12px;
+  border-inline-start: 3px solid var(--lavender);
+}
+
+/* ---------- 6ו. גלילה, פרופיל אישי ונגן שממשיך ---------- */
+
+/* גלילה: התפריט העליון וה-Footer מפנים מקום לנוף.
+   --bar עולה מ-0 ל-1 ב-120 הפיקסלים הראשונים של הגלילה (CSS בלבד, בלי JavaScript).
+   הלוגו והעיגול של המשתמשת נשארים. כל השאר חוזר כשהעכבר מעליהם או כשמגיעים אליהם במקלדת.
+   דפדפן שלא מכיר גלילה כזו פשוט מציג את הסרגלים כמו קודם */
+@property --bar {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 0;
+}
+@keyframes bars-away { to { --bar: 1; } }
+@supports (animation-timeline: scroll()) {
+  :root {
+    animation: bars-away linear both;
+    animation-timeline: scroll(root block);
+    animation-range: 0 120px;
+  }
+}
+.top-nav:hover, .top-nav:focus-within,
+.site-footer:hover, .site-footer:focus-within { --bar: 0; }
+.top-nav::before, .site-footer { opacity: calc(1 - var(--bar)); transition: opacity var(--motion) var(--ease-soft); }
+.lang-switch { opacity: calc(1 - var(--bar)); transition: opacity var(--motion) var(--ease-soft); }
+.brand { text-shadow: 0 1px 10px rgba(20, 40, 60, calc(var(--bar) * 0.55)); }
+.brand small { opacity: calc(0.85 - var(--bar) * 0.85); transition: opacity var(--motion) var(--ease-soft); }
+@media (min-width: 1001px) {
+  .top-nav nav { opacity: calc(1 - var(--bar)); transition: opacity var(--motion) var(--ease-soft); }
+}
+
+/* העיגול של המשתמשת: אות, אווטאר או תמונה */
+.avatar { overflow: hidden; padding: 0; }
+.avatar .avatar-art, .avatar img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.avatar-curls { background: linear-gradient(140deg, var(--lavender), var(--sky)); }
+.avatar-long { background: linear-gradient(140deg, #f7c9b0, var(--sunset)); }
+.avatar-bun { background: linear-gradient(140deg, var(--mist), var(--sky)); }
+.avatar-short { background: linear-gradient(140deg, #d5ece2, #a9cfe6); }
+.avatar-balloon, .avatar-mountain { background: linear-gradient(180deg, #a9cdea, #f4d7c1); }
+.avatar-art .skin { fill: #f3cdb3; }
+.avatar-art .neck { fill: #e3b496; }
+.avatar-art .hair { fill: #4a3328; }
+.avatar-long .hair { fill: #7a4f33; }
+.avatar-bun .hair { fill: #2f2622; }
+.avatar-short .hair { fill: #8a5a3c; }
+.avatar-art .shirt { fill: var(--forest); }
+.avatar-long .shirt { fill: #5f8fb8; }
+.avatar-bun .shirt { fill: #8a7fc4; }
+.avatar-short .shirt { fill: #e08f72; }
+.avatar-art .envelope { fill: var(--coral); }
+.avatar-art .stripe { fill: #f6c58f; }
+.avatar-art .rope { stroke: #6b5446; stroke-width: 1.4; fill: none; }
+.avatar-art .basket { fill: #8a6448; }
+.avatar-art .sun { fill: #fbe3b4; }
+.avatar-art .peak-back { fill: #7fa3b8; }
+.avatar-art .peak { fill: var(--forest); }
+.avatar-art .snow { fill: #fff; }
+.avatar-art .flagpole { stroke: #fff; stroke-width: 1.4; }
+.avatar-art .flag { fill: var(--coral); }
+
+/* כרטיס הפרופיל בהגדרות */
+.profile-top { display: flex; align-items: center; gap: 14px; }
+.profile-top > div { display: grid; gap: 2px; min-width: 0; }
+.profile-top strong { font-size: 17px; }
+.avatar-big { width: 64px; height: 64px; font-size: 26px; flex: none; }
+.avatar-pick { display: flex; flex-wrap: wrap; gap: 10px; margin: 0; padding: 0; border: 0; }
+.avatar-pick legend { margin-bottom: 8px; font-size: 13.5px; font-weight: 500; }
+.avatar-opt { position: relative; cursor: pointer; }
+.avatar-opt input { position: absolute; opacity: 0; }
+.avatar-opt .avatar { width: 48px; height: 48px; border-color: transparent; box-shadow: var(--shadow-soft); transition: scale var(--motion-fast) var(--ease-soft); }
+.avatar-opt:hover .avatar { scale: 1.06; }
+.avatar-opt input:checked + .avatar { border-color: var(--forest); box-shadow: 0 0 0 3px var(--lavender), var(--shadow-soft); }
+.avatar-opt input:focus-visible + .avatar { outline: 3px solid var(--focus-ring, var(--gold)); outline-offset: 2px; }
+.photo-delete { justify-self: start; }
+.wish-list h3 { display: flex; align-items: center; gap: 6px; margin: 4px 0 6px; font-size: 14.5px; }
+.wish-list ul { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.wish-list li { display: flex; gap: 10px; font-size: 14px; }
+.wish-list b { color: var(--accent-text); font-variant-numeric: tabular-nums; }
+
+/* יום הולדת: כרטיס חגיגי ועדין, עם נצנוצים קטנים */
+.birthday {
+  position: relative;
+  display: grid;
+  gap: 8px;
+  margin-top: 4px;
+  padding: 18px 22px;
+  overflow: hidden;
+  color: var(--ink);
+  background-image: linear-gradient(135deg, rgba(244, 215, 193, 0.55), rgba(200, 194, 232, 0.45)), var(--glass-bg);
+}
+.birthday h2 { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 18px; }
+.birthday p { margin: 0; }
+.bday-wish { font-family: "Caveat", "Amatic SC", cursive; font-size: 24px; line-height: 1.25; }
+.wish-form { display: grid; gap: 10px; }
+.wish-form textarea { width: 100%; resize: vertical; }
+.wish-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; }
+.check-inline { display: inline-flex; align-items: center; gap: 6px; font-size: 13.5px; }
+.bday-edit summary { cursor: pointer; font-size: 13.5px; color: var(--accent-text); }
+.bday-edit[open] summary { margin-bottom: 8px; }
+.bday-sparks { position: absolute; inset: 0; pointer-events: none; }
+.bday-sparks i {
+  position: absolute;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--gold);
+  opacity: 0;
+  animation: spark 3.6s var(--ease-soft) infinite;
+}
+.bday-sparks i:nth-child(1) { top: 18%; inset-inline-end: 8%; }
+.bday-sparks i:nth-child(2) { top: 62%; inset-inline-end: 4%; animation-delay: .6s; background: var(--lavender); }
+.bday-sparks i:nth-child(3) { top: 30%; inset-inline-end: 22%; animation-delay: 1.2s; background: var(--coral); }
+.bday-sparks i:nth-child(4) { top: 78%; inset-inline-end: 16%; animation-delay: 1.8s; }
+.bday-sparks i:nth-child(5) { top: 12%; inset-inline-end: 34%; animation-delay: 2.4s; background: var(--sky); }
+.bday-sparks i:nth-child(6) { top: 50%; inset-inline-end: 28%; animation-delay: 3s; background: var(--lavender); }
+@keyframes spark {
+  0%, 100% { opacity: 0; scale: .4; }
+  40% { opacity: .9; scale: 1; }
+  70% { opacity: 0; scale: .6; translate: 0 -10px; }
+}
+
+/* גלי קול קטנים: מה שמתנגן "זז", כדי שלא ייראה ככרטיס דומם */
+.eq { display: inline-flex; align-items: flex-end; gap: 2px; height: 14px; }
+.eq i { width: 3px; height: 100%; border-radius: 2px; background: currentColor; transform-origin: bottom; animation: eq 1s ease-in-out infinite alternate; }
+.eq i:nth-child(2) { animation-duration: .7s; }
+.eq i:nth-child(3) { animation-duration: 1.2s; }
+.eq i:nth-child(4) { animation-duration: .85s; }
+@keyframes eq { from { scale: 1 .25; } to { scale: 1 1; } }
+
+/* בתוך הנגן: מה מתנגן עכשיו, ליד העיגול של המשתמשת */
+.now-playing {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 6px 5px 12px;
+  border-radius: var(--radius-pill);
+  font-size: 13px;
+  color: #fff;
+  background: rgba(36, 64, 94, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+.np-stop { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; color: var(--ink); background: rgba(255, 255, 255, 0.85); }
+@media (max-width: 760px) {
+  .now-playing { padding-inline-start: 10px; }
+  .now-playing > span[lang] { display: none; }   /* בטלפון: רק הגלים וכפתור העצירה, כדי שהעיגול לא ייחתך */
+}
+
+/* דף הצלילים: גלים שזזים, עמודות קול, וכפתור השמעה גדול */
+.sound-art .bars {
+  position: absolute;
+  inset-inline: 22px;
+  bottom: 12px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 6px;
+  height: 30px;
+}
+.sound-art .bars i {
+  flex: 0 0 4px;
+  height: 100%;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.55);
+  transform-origin: bottom;
+  scale: 1 .2;
+  animation: eq calc(1.4s + var(--i) * 0.07s) ease-in-out calc(var(--i) * -0.13s) infinite alternate;
+  opacity: .55;
+}
+.sound-card { transition: box-shadow var(--motion) var(--ease-soft); }
+.sound-card.is-playing { box-shadow: 0 0 0 3px var(--lavender), var(--shadow-lift); }
+.sound-card.is-playing .sound-art .bars i { opacity: 1; animation-duration: calc(.6s + var(--i) * 0.04s); }
+.sound-play { align-self: flex-start; }
+.sound-now { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 0; color: var(--forest-text, var(--forest)); font-weight: 600; }
+
+/* הנגן עצמו: האתר ממלא את המסך, והנגן הקטן צף בפינה */
+.listen-shell { margin: 0; overflow: hidden; background: var(--page-bg, #8DB9DC); }
+.listen-frame { position: fixed; inset: 0; width: 100%; height: 100%; border: 0; }
+.mini-player {
+  position: fixed;
+  z-index: 5;
+  inset-inline-end: 24px;                /* בצד של ההר, רחוק מכרטיס "עכשיו" */
+  bottom: calc(var(--nav-h, 72px) + 14px);
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 8px 12px;
+  width: min(340px, calc(100vw - 32px));
+  padding: 12px 14px;
+  color: var(--ink);
+  background-color: var(--surface-strong);
+  background-image: var(--glass-bg);
+}
+.mp-art {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  color: #fff;
+  background: var(--art, linear-gradient(120deg, var(--sky), var(--mist)));
+}
+.mp-art .eq { height: 18px; }
+.mini-player:has(audio:paused) .eq i { animation-play-state: paused; }
+.mp-text { display: grid; min-width: 0; }
+.mp-text small { font-size: 12px; color: var(--ink-soft); }
+.mp-text strong { font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mini-player audio { grid-column: 1 / -1; width: 100%; height: 36px; }
+.mp-actions { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; font-size: 13px; }
+.mp-link, .mp-stop { display: inline-flex; align-items: center; gap: 5px; color: var(--accent-text); font-weight: 600; }
+.mp-stop { padding: 5px 12px; border-radius: var(--radius-pill); background: var(--surface); border: 1px solid var(--line); }
+@media (max-width: 1000px) {
+  /* טלפון: נגן נמוך מעל תפריט התחתית. שורה אחת לשם ולעצירה, ושורה לנגן */
+  .mini-player { inset-inline: 12px; width: auto; bottom: 96px; grid-template-columns: auto minmax(0, 1fr) auto; padding: 10px 12px; gap: 6px 10px; }
+  .mp-art { width: 36px; height: 36px; border-radius: 11px; }
+  .mp-actions { grid-column: 3; grid-row: 1; }
+  .mp-link { display: none; }
+  .mini-player audio { height: 32px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bday-sparks i, .eq i, .sound-art .bars i { animation: none; }
+  .eq i { scale: 1 .7; }
+}
+.no-motion .bday-sparks i, .no-motion .eq i, .no-motion .sound-art .bars i { animation: none; }
+
+/* חלון "מזל טוב" ביום ההולדת: שכבה כהה ומטושטשת, בלונים שעולים, והחלון באמצע */
+.bday-overlay {
+  position: fixed; inset: 0; z-index: 80;
+  display: grid; place-items: center; padding: 16px;
+  background: rgba(22, 34, 56, 0.45);
+  -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+  overflow: hidden;
+}
+.bday-pop {
+  position: relative; inset: auto; margin: 0; z-index: 1;
+  width: min(520px, 100%); max-height: calc(100dvh - 32px); overflow: auto;
+  padding: 28px 26px 22px; color: var(--ink); text-align: center;
+  display: grid; gap: 12px;
+  background-color: var(--surface-strong); background-image: var(--glass-bg);
+  animation: pop-in .5s cubic-bezier(.2, .9, .3, 1.2) both;
+}
+.pop-title { margin: 0; font-size: clamp(32px, 6vw, 46px); line-height: 1.1; font-family: "Caveat", "Heebo", cursive; color: var(--accent-text); }
+.pop-text { margin: 0; font-size: 17px; }
+.bday-pop .wish-form { text-align: start; }
+.wish-list { text-align: start; border-top: 1px dashed var(--line); padding-top: 10px; }
+.wish-list h3 { display: flex; align-items: center; gap: 6px; margin: 0 0 6px; font-size: 15px; }
+.wish-list ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 4px; }
+.wish-list li b { color: var(--accent-text); margin-inline-end: 6px; }
+.pop-close { display: flex; justify-content: center; }
+@keyframes pop-in { from { opacity: 0; transform: scale(.92) translateY(12px); } }
+
+/* בלונים: אליפסה עם ברק, וחוט דק מתחתיה. כל בלון עולה בקצב ובמקום אחר */
+.balloons { position: absolute; inset: 0; pointer-events: none; }
+.balloons i {
+  --c: #F2A7A0;
+  position: absolute; bottom: -90px; width: 46px; height: 58px;
+  border-radius: 50% 50% 48% 48% / 55% 55% 45% 45%;
+  background: radial-gradient(circle at 32% 28%, rgba(255, 255, 255, 0.75), transparent 28%), var(--c);
+  box-shadow: inset -6px -8px 12px rgba(0, 0, 0, 0.12);
+  animation: balloon-rise 13s linear infinite;
+}
+.balloons i::after {
+  content: ""; position: absolute; top: 100%; left: 50%;
+  width: 1px; height: 46px; background: rgba(255, 255, 255, 0.7);
+}
+.balloons i:nth-child(1) { left: 6%;  --c: #F2A7A0; animation-duration: 12s; animation-delay: -2s; }
+.balloons i:nth-child(2) { left: 18%; --c: #B9A7E8; animation-duration: 15s; animation-delay: -9s; }
+.balloons i:nth-child(3) { left: 30%; --c: #F6D58E; animation-duration: 11s; animation-delay: -5s; }
+.balloons i:nth-child(4) { left: 44%; --c: #8DB9DC; animation-duration: 14s; animation-delay: -12s; }
+.balloons i:nth-child(5) { left: 58%; --c: #9ED4C0; animation-duration: 12.5s; animation-delay: -7s; }
+.balloons i:nth-child(6) { left: 70%; --c: #F4B6D2; animation-duration: 16s; animation-delay: -1s; }
+.balloons i:nth-child(7) { left: 82%; --c: #B9A7E8; animation-duration: 13s; animation-delay: -10s; }
+.balloons i:nth-child(8) { left: 92%; --c: #F6D58E; animation-duration: 11.5s; animation-delay: -4s; }
+@keyframes balloon-rise {
+  0%   { transform: translateY(0) rotate(-4deg); }
+  50%  { transform: translateY(-60vh) rotate(4deg); }
+  100% { transform: translateY(-125vh) rotate(-4deg); }
+}
+/* בלי תנועה: הבלונים עומדים במקום, בגבהים שונים */
+.no-motion .balloons i, .no-motion .bday-pop { animation: none; }
+.no-motion .balloons i:nth-child(odd) { bottom: 18%; }
+.no-motion .balloons i:nth-child(even) { bottom: 62%; }
+@media (prefers-reduced-motion: reduce) {
+  .balloons i, .bday-pop { animation: none; }
+  .balloons i:nth-child(odd) { bottom: 18%; }
+  .balloons i:nth-child(even) { bottom: 62%; }
+}
+
 /* ---------- 7. הלוח: ארבעה טורים ---------- */
 .board {
   display: grid;
@@ -580,7 +1176,7 @@ button { cursor: pointer; }
 /* פס התקדמות */
 .bar {
   height: 6px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   overflow: hidden;
   background: rgba(31, 45, 58, 0.1);
 }
@@ -601,7 +1197,7 @@ button { cursor: pointer; }
   gap: 6px;
   padding: 10px 16px;
   border: 0;
-  border-radius: 12px;
+  border-radius: var(--radius-xs);
   font-size: 14px;
   font-weight: 600;
   white-space: nowrap;
@@ -620,6 +1216,8 @@ button { cursor: pointer; }
   border: 1px dashed rgba(53, 101, 143, 0.35);
 }
 .btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+/* האייקון בא אחרי המילים, בכיוון הקריאה: "שמירה +" בעברית, "Save +" באנגלית */
+.btn > .icon { order: 1; }
 
 /* שדות */
 input[type="text"], input[type="time"], select {
@@ -627,17 +1225,26 @@ input[type="text"], input[type="time"], select {
   min-width: 0;
   padding: 10px 13px;
   font-size: 14px;
-  border-radius: 12px;
+  border-radius: var(--radius-xs);
   border: 1px solid rgba(31, 45, 58, 0.1);
   background: rgba(255, 255, 255, 0.7);
   outline: none;
-  transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+  transition: border-color var(--motion-fast), box-shadow var(--motion-fast), background var(--motion-fast);
 }
 input[type="text"]:focus, input[type="time"]:focus, select:focus {
   border-color: var(--sky);
   background: #fff;
   box-shadow: 0 0 0 3px rgba(141, 185, 220, 0.35);
 }
+/* שדה ריק עם dir="auto": הטקסט המנחה הולך בכיוון של השפה. בעברית הוא מתחיל מימין, וסימן השאלה או שלוש הנקודות בסוף.
+   ברגע שמתחילים לכתוב, dir="auto" שוב מתאים את הכיוון למה שנכתב */
+[dir="rtl"] :is(input, textarea)[dir="auto"]:placeholder-shown { direction: rtl; }
+/* יום הולדת: שלוש רשימות בשורה אחת (יום, חודש, שנה) */
+.date-pick { border: 0; margin: 0; padding: 0; min-width: 0; }
+.date-pick legend { padding: 0; margin-bottom: 6px; }
+.date-selects { display: grid; grid-template-columns: minmax(4.2em, 0.8fr) minmax(0, 1.5fr) minmax(5.2em, 1fr); gap: 8px; max-width: 24em; }
+/* בטופס המשימה התאריך תופס שורה שלמה, כדי שהמילים "יום", "חודש" ו"שנה" ייכנסו במלואן */
+.field-row > .date-pick { grid-column: 1 / -1; }
 .add-row { display: flex; gap: 8px; align-items: center; }
 .add-row input[type="time"] { flex: 0 0 auto; width: 108px; }
 
@@ -645,11 +1252,14 @@ input[type="text"]:focus, input[type="time"]:focus, select:focus {
 .chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .chip {
   padding: 5px 13px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   font-size: 13px;
   color: var(--ink-soft);
-  transition: background 0.2s, color 0.2s;
+  transition: background var(--motion-fast), color var(--motion-fast);
 }
+/* תגית עם אייקון ("הושלמו ✓"): המילה והאייקון באותה שורה, והאייקון אחרי המילה כמו בכפתורים */
+.chip { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
+.chip > .icon { order: 1; }
 .chip:hover { background: rgba(255, 255, 255, 0.7); color: var(--ink); }
 .chip.active { color: #fff; background: var(--deep); box-shadow: 0 4px 10px rgba(53, 101, 143, 0.3); }
 
@@ -658,7 +1268,7 @@ input[type="text"]:focus, input[type="time"]:focus, select:focus {
   display: grid;
   gap: 2px;
   padding: 12px 14px;
-  border-radius: 14px;
+  border-radius: var(--radius-sm);
   background: linear-gradient(120deg, rgba(244, 215, 193, 0.85), rgba(220, 234, 244, 0.85));
   border: 1px solid rgba(255, 255, 255, 0.8);
 }
@@ -674,8 +1284,8 @@ input[type="text"]:focus, input[type="time"]:focus, select:focus {
   gap: 12px;
   padding: 11px 6px;
   border-bottom: 1px solid var(--line);
-  border-radius: 12px;
-  transition: background 0.2s;
+  border-radius: var(--radius-xs);
+  transition: background var(--motion-fast);
 }
 .task:hover { background: rgba(255, 255, 255, 0.55); }
 .task > form { display: contents; }
@@ -725,7 +1335,7 @@ input[type="text"]:focus, input[type="time"]:focus, select:focus {
 .add-task { display: grid; gap: 8px; padding-top: 4px; }
 
 /* תגיות צבעוניות לפי קטגוריה */
-.tag { padding: 3px 11px; border-radius: 999px; font-size: 12px; font-weight: 500; white-space: nowrap; }
+.tag { padding: 3px 11px; border-radius: var(--radius-pill); font-size: 12px; font-weight: 500; white-space: nowrap; }
 .tag-work { color: #3d6a9a; background: #dfe9f7; }
 .tag-study { color: #7656b8; background: #ece4fa; }
 .tag-personal { color: #b5653f; background: #fbe3d6; }
@@ -761,12 +1371,12 @@ input[type="text"]:focus, input[type="time"]:focus, select:focus {
   justify-self: start;
   margin-top: 4px;
   padding: 5px 12px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   font-size: 13px;
   font-weight: 600;
   color: var(--forest);
   background: rgba(255, 255, 255, 0.7);
-  transition: background 0.2s;
+  transition: background var(--motion-fast);
 }
 .focus-link:hover { background: #fff; }
 
@@ -788,12 +1398,12 @@ input[type="text"]:focus, input[type="time"]:focus, select:focus {
   align-items: center;
   gap: 6px;
   padding: 3px 10px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   font-size: 12.5px;
   color: var(--ink-soft);
   cursor: pointer;
   list-style: none;
-  transition: background 0.2s, color 0.2s;
+  transition: background var(--motion-fast), color var(--motion-fast);
 }
 .steps summary::-webkit-details-marker { display: none; }
 .steps summary:hover { color: var(--ink); background: rgba(255, 255, 255, 0.7); }
@@ -844,7 +1454,7 @@ input[type="text"]:focus, input[type="time"]:focus, select:focus {
   color: var(--deep);
   background: rgba(255, 255, 255, 0.8);
   box-shadow: 0 2px 6px rgba(31, 45, 58, 0.1);
-  transition: background 0.2s;
+  transition: background var(--motion-fast);
 }
 .icon-btn:hover { background: #fff; }
 
@@ -971,7 +1581,7 @@ input[type="text"]:focus, input[type="time"]:focus, select:focus {
   min-width: 36px;
   padding: 5px 8px;
   border: 0;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   font-size: 13px;
   color: var(--ink-soft);
   background: transparent;
@@ -982,7 +1592,7 @@ input[type="text"]:focus, input[type="time"]:focus, select:focus {
 
 /* ---------- 11. התקדמות ---------- */
 .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; text-align: center; }
-.stats div { display: grid; gap: 2px; padding: 10px 4px; border-radius: 14px; background: rgba(255, 255, 255, 0.5); }
+.stats div { display: grid; gap: 2px; padding: 10px 4px; border-radius: var(--radius-sm); background: rgba(255, 255, 255, 0.5); }
 .stats strong { font-size: 18px; font-weight: 600; color: var(--forest); }
 .stats small { font-size: 11.5px; color: var(--ink-soft); }
 
@@ -1071,12 +1681,12 @@ input[type="text"]:focus, input[type="time"]:focus, select:focus {
   width: 100%;
   padding: 10px 12px;
   border: 0;
-  border-radius: 12px;
+  border-radius: var(--radius-xs);
   font-size: 14px;
   text-align: start;
   color: var(--ink);
   background: transparent;
-  transition: background 0.2s;
+  transition: background var(--motion-fast);
 }
 .snooze-list button .icon { color: var(--ink-soft); }
 .snooze-list li:first-child button { background: rgba(141, 185, 220, 0.22); }
@@ -1175,6 +1785,14 @@ input[type="text"]:focus, input[type="time"]:focus, select:focus {
   pointer-events: none;
   background: radial-gradient(ellipse at 50% 45%, rgba(20, 35, 50, 0.12), rgba(20, 35, 50, 0.45));
 }
+/* רגוע עוד יותר: הערפל חלש, הנוף רך ומטושטש מעט, ושום דבר דקורטיבי לא זז.
+   נשארים רק המשימה והטיימר. הטבעת של הטיימר ממשיכה לרוץ, כי היא מידע ולא קישוט */
+.focus-page .mist { opacity: calc(var(--mist-opacity) * 0.5); }
+.focus-page .wisp { display: none; }
+.focus-page :is(.mist-layer, .balloon, .scene) { animation: none; }
+.focus-page .balloon { opacity: 0.45; }
+.focus-page .scene { filter: blur(3px) saturate(0.8); }
+.focus-page .focus-veil { background: radial-gradient(ellipse at 50% 45%, rgba(20, 35, 50, 0.18), rgba(20, 35, 50, 0.55)); }
 .focus-wrap {
   position: relative;
   z-index: 3;
@@ -1198,7 +1816,7 @@ input[type="text"]:focus, input[type="time"]:focus, select:focus {
   align-items: center;
   gap: 7px;
   padding: 6px 13px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   font-size: 13px;
   font-weight: 600;
   color: var(--forest);
@@ -1208,7 +1826,7 @@ input[type="text"]:focus, input[type="time"]:focus, select:focus {
   width: 100%;
   margin: 0;
   padding: 12px 16px;
-  border-radius: 14px;
+  border-radius: var(--radius-sm);
   font-weight: 600;
   color: var(--forest);
   background: linear-gradient(120deg, rgba(220, 239, 230, 0.95), rgba(244, 215, 193, 0.9));
@@ -1234,7 +1852,7 @@ input[type="text"]:focus, input[type="time"]:focus, select:focus {
   min-width: 70px;
   padding: 10px 14px;
   border: 1px solid rgba(53, 101, 143, 0.18);
-  border-radius: 14px;
+  border-radius: var(--radius-sm);
   font-size: 16px;
   font-weight: 600;
   color: var(--deep);
@@ -1282,7 +1900,7 @@ input[type="text"]:focus, input[type="time"]:focus, select:focus {
 .sound-card .muted { margin: -6px 0 0; }
 .sound-title { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .sound-title h2 { margin: 0; font-size: 20px; font-weight: 600; }
-.fav { padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; color: #a8742a; background: #fdeccf; }
+.fav { padding: 3px 10px; border-radius: var(--radius-pill); font-size: 12px; font-weight: 600; color: #a8742a; background: #fdeccf; }
 .sound-card audio { width: 100%; }
 
 /* ציור קטן לכל מרחב: גלים שזזים לאט */
@@ -1316,10 +1934,10 @@ input[type="text"]:focus, input[type="time"]:focus, select:focus {
 .vote-btn {
   padding: 6px 14px;
   border: 1px solid rgba(31, 45, 58, 0.12);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   font-size: 13px;
   background: rgba(255, 255, 255, 0.7);
-  transition: background 0.2s;
+  transition: background var(--motion-fast);
 }
 .vote-btn:hover { background: #fff; }
 /* אחרי לחיצה: סימן קטן שהתשובה נשמרה (בלי לטעון את הדף) */
@@ -1336,7 +1954,7 @@ input[type="text"]:focus, input[type="time"]:focus, select:focus {
   top: 10px;
   inset-inline-start: 10px;
   padding: 10px 16px;
-  border-radius: 12px;
+  border-radius: var(--radius-xs);
   font-weight: 600;
   color: #fff;
   background: var(--deep);
@@ -1400,12 +2018,12 @@ main:focus { outline: none; }
 .flash {
   margin: 0;
   padding: 11px 16px;
-  border-radius: 14px;
+  border-radius: var(--radius-sm);
   font-weight: 500;
   color: var(--forest-text);
   background: var(--ok-bg);
   border: 1px solid rgba(255, 255, 255, 0.7);
-  box-shadow: 0 6px 16px rgba(31, 45, 58, 0.1);
+  box-shadow: var(--shadow-soft);
 }
 .flash small { display: block; margin-top: 3px; font-weight: 400; color: var(--ink-soft); }
 .flash-warn { color: var(--warn-text); background: var(--warn-bg); }
@@ -1414,11 +2032,13 @@ main:focus { outline: none; }
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  justify-content: space-between;
-  gap: 8px 16px;
-  margin-bottom: 16px;
-  padding: 10px 16px;
-  border-radius: 14px;
+  gap: 6px 14px;
+  width: fit-content;                  /* ההודעה ברוחב הטקסט שלה, לא לכל רוחב הדף */
+  max-width: 100%;
+  margin: 12px 0 16px;
+  padding: 7px 16px;
+  border-radius: 18px;
+  font-size: 13.5px;
   color: var(--warn-text);
   background: var(--warn-bg);
 }
@@ -1499,7 +2119,7 @@ main:focus { outline: none; }
   gap: 8px;
   min-width: 150px;
   padding: 12px;
-  border-radius: 14px;
+  border-radius: var(--radius-sm);
   font-size: 13px;
   text-align: center;
   color: var(--ink);
@@ -1516,7 +2136,7 @@ main:focus { outline: none; }
 
 /* משימות: עדיפות, תאריך ופירוט */
 .task-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
-.prio { padding: 1px 8px; border-radius: 999px; font-size: 11.5px; font-weight: 600; color: #a2463b; background: rgba(249, 219, 228, 0.9); }
+.prio { padding: 1px 8px; border-radius: var(--radius-pill); font-size: 11.5px; font-weight: 600; color: #a2463b; background: rgba(249, 219, 228, 0.9); }
 .prio-later { color: var(--ink-soft); background: var(--surface-soft); }
 .task.important .task-text { font-weight: 600; }
 .task-details { margin: 2px 0 0; font-size: 13px; color: var(--ink-soft); white-space: pre-line; }
@@ -1530,11 +2150,11 @@ input[type="email"], input[type="password"], input[type="date"], input[type="num
   font: inherit;
   font-size: 14px;
   color: inherit;
-  border-radius: 12px;
+  border-radius: var(--radius-xs);
   border: 1px solid var(--field-border);
   background: var(--surface);
   outline: none;
-  transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+  transition: border-color var(--motion-fast), box-shadow var(--motion-fast), background var(--motion-fast);
 }
 textarea { resize: vertical; line-height: 1.5; }
 :is(input[type="email"], input[type="password"], input[type="date"], input[type="number"], textarea):focus {
@@ -1553,7 +2173,7 @@ textarea { resize: vertical; line-height: 1.5; }
 .more-fields[open] { display: grid; gap: 8px; }
 .check-row { display: flex; align-items: flex-start; gap: 9px; font-size: 14px; }
 .check-row input { margin-top: 3px; accent-color: var(--forest); }
-.form-error, .form-ok { margin: 0; padding: 10px 14px; border-radius: 12px; font-size: 14px; text-align: start; }
+.form-error, .form-ok { margin: 0; padding: 10px 14px; border-radius: var(--radius-xs); font-size: 14px; text-align: start; }
 .form-error { color: #8b2f3a; background: rgba(249, 219, 228, 0.92); list-style: none; }
 .form-ok { color: var(--forest); background: rgba(220, 239, 230, 0.95); }
 
@@ -1566,12 +2186,12 @@ textarea { resize: vertical; line-height: 1.5; }
 .seg-item span {
   display: inline-block;
   padding: 7px 13px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   font-size: 13px;
   color: var(--ink-soft);
   background: var(--surface-soft);
   border: 1px solid var(--field-border);
-  transition: background 0.2s, color 0.2s;
+  transition: background var(--motion-fast), color var(--motion-fast);
 }
 .seg-item input:checked + span { color: #fff; font-weight: 600; background: var(--deep); border-color: var(--deep); }
 .seg-item input:focus-visible + span { outline: 3px solid var(--focus-ring); outline-offset: 2px; }
@@ -1584,9 +2204,9 @@ textarea { resize: vertical; line-height: 1.5; }
   flex: none;
   width: 42px;
   height: 24px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: rgba(31, 45, 58, 0.2);
-  transition: background 0.2s;
+  transition: background var(--motion-fast);
 }
 .switch::after {
   content: "";
@@ -1627,7 +2247,7 @@ textarea { resize: vertical; line-height: 1.5; }
   justify-content: space-between;
   gap: 10px;
   padding: 12px 16px;
-  border-radius: 14px;
+  border-radius: var(--radius-sm);
   background: linear-gradient(120deg, var(--ok-bg), var(--warn-bg));
 }
 .break-offer p { margin: 0; font-weight: 500; color: var(--forest-text); }
@@ -1677,11 +2297,11 @@ p.empty.glass { grid-column: 1 / -1; padding: 22px; }
 }
 .suggestion { display: grid; gap: 10px; padding: 14px 16px; border-radius: 16px; background: linear-gradient(140deg, var(--warn-bg), var(--surface-soft)); }
 .source-line { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin: 0; font-size: 12.5px; color: var(--ink-soft); }
-.source-badge { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 999px; font-weight: 600; color: var(--forest-text); background: var(--surface); }
+.source-badge { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: var(--radius-pill); font-weight: 600; color: var(--forest-text); background: var(--surface); }
 .reflection { margin: 0; font-size: 15.5px; line-height: 1.5; }
 .question { margin: 0; font-weight: 600; color: var(--accent-text); }
 .options { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; counter-reset: opt; }
-.option { display: grid; gap: 8px; padding: 10px 12px; border-radius: 12px; background: var(--surface); }
+.option { display: grid; gap: 8px; padding: 10px 12px; border-radius: var(--radius-xs); background: var(--surface); }
 .option-title { font-weight: 500; }
 .option-title::before { counter-increment: opt; content: counter(opt) ". "; color: var(--forest-text); font-weight: 700; }
 .option-title small { color: var(--ink-soft); }
@@ -1690,7 +2310,7 @@ p.empty.glass { grid-column: 1 / -1; padding: 22px; }
 .bucket-title { margin: 6px 0 0; font-size: 13px; font-weight: 600; color: var(--forest-text); }
 .bucket-let_go { color: var(--ink-soft); }
 .thought-list { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
-.thought-item { display: grid; gap: 6px; padding: 10px 12px; border-radius: 12px; background: var(--surface-soft); }
+.thought-item { display: grid; gap: 6px; padding: 10px 12px; border-radius: var(--radius-xs); background: var(--surface-soft); }
 .thought-item p { margin: 0; white-space: pre-line; }
 .thought-actions .chip { padding: 4px 10px; font-size: 12px; border: 1px solid var(--field-border); background: var(--surface); }
 .thought-suggestion > summary { cursor: pointer; font-size: 12.5px; color: var(--accent-text); }
@@ -1699,13 +2319,13 @@ p.empty.glass { grid-column: 1 / -1; padding: 22px; }
 
 /* יומן: לוח חודשי גדול עם נקודות */
 .month-page .month-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.month-page .day { position: relative; width: min(42px, 100%); font-size: 14px; transition: background 0.2s; }
+.month-page .day { position: relative; width: min(42px, 100%); font-size: 14px; transition: background var(--motion-fast); }
 .month-page a.day:hover { background: var(--surface); }
 .day.selected:not(.today) { box-shadow: inset 0 0 0 2px var(--deep); }
 .dot { position: absolute; bottom: 3px; left: 50%; width: 5px; height: 5px; translate: -50% 0; border-radius: 50%; background: var(--coral); }
 .today .dot { background: #fff; }
 [dir="rtl"] .flip .icon { transform: scaleX(-1); }
-.sync-status { display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px; border-radius: 999px; font-size: 14px; background: rgba(36, 64, 94, 0.35); }
+.sync-status { display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px; border-radius: var(--radius-pill); font-size: 14px; background: rgba(36, 64, 94, 0.35); }
 .sync-needs_reconnect { background: rgba(162, 70, 59, 0.55); }
 .tag-line-google { --bar: #e3a688; }
 .agenda-item .chip { justify-self: start; margin-top: 4px; padding: 3px 10px; font-size: 12px; border: 1px solid var(--field-border); background: var(--surface); }
@@ -1719,7 +2339,7 @@ p.empty.glass { grid-column: 1 / -1; padding: 22px; }
 .label-measured, .label-self, .label-interpretation, .label-suggestion {
   display: inline-block;
   padding: 2px 10px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   font-size: 11.5px;
   font-weight: 600;
   vertical-align: middle;
@@ -1747,7 +2367,7 @@ p.empty.glass { grid-column: 1 / -1; padding: 22px; }
 .pulse { display: grid; gap: 12px; }
 .faces { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; margin: 0; padding: 0; border: 0; }
 .faces legend { margin-bottom: 8px; padding: 0; font-weight: 600; }
-.face { position: relative; display: grid; justify-items: center; gap: 2px; padding: 8px 2px; border-radius: 14px; cursor: pointer; background: var(--surface-soft); border: 1px solid transparent; transition: background 0.2s, border-color 0.2s; }
+.face { position: relative; display: grid; justify-items: center; gap: 2px; padding: 8px 2px; border-radius: var(--radius-sm); cursor: pointer; background: var(--surface-soft); border: 1px solid transparent; transition: background 0.2s, border-color 0.2s; }
 .face input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
 .face-emoji { font-size: 26px; line-height: 1; }
 .face-label { font-size: 11.5px; color: var(--ink-soft); text-align: center; }
@@ -1761,6 +2381,20 @@ p.empty.glass { grid-column: 1 / -1; padding: 22px; }
 
 /* דפי חשבון והודעות */
 .login-form input { width: 100%; }
+
+/* מד חוזק לסיסמה חדשה. CSS בלבד: ריק = אפור, מקלידים = כתום (עוד לא חזקה), 12 תווים ומעלה = ירוק */
+.pw-field { display: grid; gap: 6px; }
+.pw-field input { width: 100%; }
+.pw-meter { height: 6px; border-radius: var(--radius-pill); background: var(--line); overflow: hidden; }
+.pw-meter > span { display: block; height: 100%; width: 0; border-radius: inherit; transition: width var(--motion), background var(--motion); }
+.pw-hint > span { display: none; }
+.pw-field:has(input:placeholder-shown) .pw-empty { display: inline; }
+.pw-field:has(input:not(:placeholder-shown):invalid) .pw-meter > span { width: 50%; background: #E3A857; }
+.pw-field:has(input:not(:placeholder-shown):invalid) .pw-not-yet { display: inline; color: #B7772A; }
+.pw-field:has(input:not(:placeholder-shown):valid) .pw-meter > span { width: 100%; background: #4E9A7A; }
+.pw-field:has(input:not(:placeholder-shown):valid) .pw-strong { display: inline; color: #3D8566; font-weight: 600; }
+:root[data-theme="dark"] .pw-field:has(input:not(:placeholder-shown):invalid) .pw-not-yet { color: #F0C27E; }
+:root[data-theme="dark"] .pw-field:has(input:not(:placeholder-shown):valid) .pw-strong { color: #8ED1B2; }
 .auth-links { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 16px; margin: 0; font-size: 14px; }
 .login-card .flashes { margin: 0; }
 .login-card .lang-link { padding: 0; border: 0; background: none; cursor: pointer; justify-self: center; }
@@ -1788,14 +2422,33 @@ p.empty.glass { grid-column: 1 / -1; padding: 22px; }
 
 /* ---------- 16. כניסה עדינה של הכרטיסים בגלילה ---------- */
 @supports (animation-timeline: view()) {
-  .card {
+  .card, .deck-item {
     animation: rise linear both;
     animation-timeline: view();
     animation-range: entry 0% entry 60%;
   }
+  /* זרימה: כל טור נכנס קצת אחרי הקודם, כך שהעין מקבלת דבר אחד בכל פעם */
+  .col:nth-child(2) .card, .deck-item:nth-child(2) { animation-range: entry 8% entry 68%; }
+  .col:nth-child(3) .card, .deck-item:nth-child(3) { animation-range: entry 16% entry 76%; }
+  .col:nth-child(4) .card { animation-range: entry 24% entry 84%; }
   @keyframes rise {
-    from { opacity: 0.2; transform: translateY(26px); }
+    from { opacity: 0; transform: translateY(34px) scale(0.97); }
   }
+}
+
+/* ---------- 16א. עומק בגלילה (Parallax) ----------
+   כמו שכבות בסרט מצויר: ההר הרחוק זז לאט, הערפל מהר יותר, והתוכן הכי מהר.
+   הגלילה עצמה מניעה את האנימציה (scroll-timeline), בלי JavaScript. */
+@supports (animation-timeline: scroll()) {
+  .scene { animation: depth-far linear both; animation-timeline: scroll(root); animation-range: 0 100vh; }
+  .m1 { animation: drift 95s ease-in-out infinite alternate, depth-near linear both; }
+  .m2 { animation: drift 130s ease-in-out infinite alternate-reverse, depth-near linear both; }
+  .m3 { animation: drift 170s ease-in-out infinite alternate, depth-near linear both; }
+  .w1 { animation: drift-far 140s linear infinite alternate, depth-near linear both; }
+  .w2 { animation: drift-far 180s linear infinite alternate-reverse, depth-near linear both; }
+  .mist-layer, .wisp { animation-timeline: auto, scroll(root); animation-range: normal, 0 100vh; }
+  @keyframes depth-far { to { translate: 0 -6vh; } }
+  @keyframes depth-near { to { translate: 0 -12vh; } }
 }
 
 /* ---------- 16ב. ערכות צבעים: בהיר, כהה ואוטומטי ----------
@@ -1807,6 +2460,7 @@ p.empty.glass { grid-column: 1 / -1; padding: 22px; }
   --glass-border: rgba(255, 255, 255, 0.75);
   --glass-inset: rgba(255, 255, 255, 0.85);
   --scene-filter: none;
+  --window-dim: 1;
   --night: 0;
   --night-overlay: none;
   --mist-opacity: 1;
@@ -1824,10 +2478,13 @@ p.empty.glass { grid-column: 1 / -1; padding: 22px; }
 /* ערכי מצב כהה: פעם אחת לבחירה "כהה", ופעם ל"אוטומטי" כשהמכשיר במצב כהה */
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --ink: #e8eef5;
-  --ink-soft: #a9bccd;
+  --ink: #f2ede4;           /* טקסט בגוון שמנת */
+  --ink-soft: #b9b5dc;      /* טקסט משני בגוון לבנדר */
   --line: rgba(255, 255, 255, 0.1);
   --shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+  --shadow-soft: 0 6px 16px rgba(0, 0, 0, 0.28);
+  --shadow-lift: 0 20px 44px rgba(0, 0, 0, 0.45);
+  --border-lift: rgba(200, 194, 232, 0.45);
   --page-bg: linear-gradient(180deg, #0e1730 0%, #1b2547 35%, #3a2d55 65%, #2b2140 100%);
   --glass-bg: linear-gradient(160deg, rgba(24, 36, 60, 0.82), rgba(30, 40, 70, 0.7));
   --glass-border: rgba(160, 190, 230, 0.18);
@@ -1839,6 +2496,8 @@ p.empty.glass { grid-column: 1 / -1; padding: 22px; }
   --surface: rgba(255, 255, 255, 0.08);
   --surface-soft: rgba(255, 255, 255, 0.05);
   --surface-strong: rgba(40, 54, 86, 0.98);
+  --day-glow-color: rgba(200, 194, 232, 0.4);   /* בלילה האור של היום בגוון לבנדר, כמו אור ירח */
+  --window-dim: 0.72;
   --field-bg: rgba(255, 255, 255, 0.07);
   --field-border: rgba(255, 255, 255, 0.16);
   --track: rgba(255, 255, 255, 0.14);
@@ -1860,10 +2519,13 @@ p.empty.glass { grid-column: 1 / -1; padding: 22px; }
 @media (prefers-color-scheme: dark) {
   :root[data-theme="auto"] {
     color-scheme: dark;
-    --ink: #e8eef5;
-    --ink-soft: #a9bccd;
+    --ink: #f2ede4;           /* טקסט בגוון שמנת */
+    --ink-soft: #b9b5dc;      /* טקסט משני בגוון לבנדר */
     --line: rgba(255, 255, 255, 0.1);
     --shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+    --shadow-soft: 0 6px 16px rgba(0, 0, 0, 0.28);
+    --shadow-lift: 0 20px 44px rgba(0, 0, 0, 0.45);
+    --border-lift: rgba(200, 194, 232, 0.45);
     --page-bg: linear-gradient(180deg, #0e1730 0%, #1b2547 35%, #3a2d55 65%, #2b2140 100%);
     --glass-bg: linear-gradient(160deg, rgba(24, 36, 60, 0.82), rgba(30, 40, 70, 0.7));
     --glass-border: rgba(160, 190, 230, 0.18);
@@ -1875,6 +2537,8 @@ p.empty.glass { grid-column: 1 / -1; padding: 22px; }
     --surface: rgba(255, 255, 255, 0.08);
     --surface-soft: rgba(255, 255, 255, 0.05);
     --surface-strong: rgba(40, 54, 86, 0.98);
+    --day-glow-color: rgba(200, 194, 232, 0.4);
+    --window-dim: 0.72;
     --field-bg: rgba(255, 255, 255, 0.07);
     --field-border: rgba(255, 255, 255, 0.16);
     --track: rgba(255, 255, 255, 0.14);
@@ -1965,7 +2629,7 @@ input[type="text"], input[type="time"], select { background: var(--field-bg); bo
     left: 12px;
     right: 12px;
     bottom: 12px;
-    border-radius: 22px;
+    border-radius: var(--radius);
     background: rgba(30, 55, 82, 0.58);
     border: 1px solid rgba(255, 255, 255, 0.25);
     box-shadow: 0 10px 30px rgba(20, 40, 60, 0.25);
@@ -2001,18 +2665,31 @@ input[type="text"], input[type="time"], select { background: var(--field-bg); bo
   .dnd-label { display: none; }
   .hero-actions { flex-wrap: nowrap; }
   .hero > * { width: 100%; min-width: 0; }   /* שהברכה והכפתורים לא יהיו רחבים מהמסך */
-  .hero-actions .btn { flex: 1; min-width: 0; padding: 11px 12px; white-space: normal; }  .sound-grid { grid-template-columns: minmax(0, 1fr); }
+  .hero-actions .btn { flex: 1; min-width: 0; padding: 11px 12px; white-space: normal; }
+  /* טלפון: הקלפים הופכים לסליידר שגוללים עם האצבע, וכל קלף נעצר באמצע */
+  .deck { justify-content: flex-start; overflow-x: auto; scroll-snap-type: x mandatory; padding-inline: 9vw; margin-inline: -16px; scrollbar-width: none; }
+  .deck::-webkit-scrollbar { display: none; }
+  .deck-item, .deck-item:nth-child(2):not(:last-child) { flex: 0 0 78vw; scale: 1; scroll-snap-align: center; }
+  .sound-grid { grid-template-columns: minmax(0, 1fr); }
   .sound-art { margin: -18px -16px 0; }
   .focus-card { padding: 22px 18px; }
 }
 
 /* ---------- 18. תנועה: אפשר לעצור (נגישות ו-ADHD) ---------- */
 @media (prefers-reduced-motion: reduce) {
+  :root { --motion-fast: 0.01s; --motion: 0.01s; }
   html { scroll-behavior: auto; }
-  .balloon, .mist-layer, .wisp, .milestone, .card, .journey, .journey img, .ring-breathe, .sound-art span { animation: none !important; }
+  .balloon, .mist-layer, .wisp, .milestone, .card, .journey, .journey img, .ring-breathe, .sound-art span, .scene, .deck-item { animation: none !important; }
+  .deck-item, .deck-card, .card, .deck-more .icon { transition: none; }
+  .card:hover, .deck-card:hover { translate: none; }   /* רק הצל משתנה, הכרטיס לא זז */
+  .deck-card[open] .deck-step { animation: none; }
+  .deck-card::details-content { transition: none; }
+  .now-balloon { animation: none; }
+  .now-window::before, .day-glow { transition: none; }
+  .flash, .flash-icon path, .task.just, .task.just .check, .step.just .step-check, .note.just, .day-chip.just { animation: none; }
   .skip-link, .switch::after, .seg-item span { transition: none; }
 }
-.no-motion { scroll-behavior: auto; }
+.no-motion { scroll-behavior: auto; --motion-fast: 0.01s; --motion: 0.01s; }
 .no-motion .balloon,
 .no-motion .mist-layer,
 .no-motion .wisp,
@@ -2021,4 +2698,13 @@ input[type="text"], input[type="time"], select { background: var(--field-bg); bo
 .no-motion .journey,
 .no-motion .journey img,
 .no-motion .ring-breathe,
-.no-motion .sound-art span { animation: none !important; }
+.no-motion .sound-art span,
+.no-motion .scene,
+.no-motion .deck-item { animation: none !important; }
+.no-motion .deck-item, .no-motion .deck-card, .no-motion .card, .no-motion .deck-more .icon { transition: none; }
+.no-motion .card:hover, .no-motion .deck-card:hover { translate: none; }
+.no-motion .deck-card[open] .deck-step { animation: none; }
+.no-motion .deck-card::details-content { transition: none; }
+.no-motion .now-balloon { animation: none; }
+.no-motion .now-window::before, .no-motion .day-glow { transition: none; }
+.no-motion :is(.flash, .flash-icon path, .task.just, .task.just .check, .step.just .step-check, .note.just, .day-chip.just) { animation: none; }

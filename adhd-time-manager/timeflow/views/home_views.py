@@ -1,7 +1,7 @@
 """מסך הבית: "עכשיו" (צעד אחד ופעולה אחת), "התכנון שלי" מתחת, והמסע על ההר."""
-from flask import g
+from flask import g, request, session
 
-from .. import clock, focus_timer, journey, personalization_engine, planner, ui
+from .. import clock, focus_timer, journey, motivation, personalization_engine, planner, ui
 from ..learning_data import build_history
 from . import back, bp, form_text, page, repo, say, tr, uid
 
@@ -57,9 +57,20 @@ def home():
     stats = focus_timer.day_stats(r, user_id, now.date())
     trip = journey.view(r, user_id)
     in_climb = trip["points"] % journey.POINTS_PER_CLIMB
+    today_points = r.journey_points(user_id, *clock.day_bounds(now.date()))
+    birthday = ui.is_birthday(g.user["birthday"], now.date())
+    # חלון "מזל טוב" מופיע ביום ההולדת, עד שסוגרים אותו או שומרים משאלה
+    birthday_pop = birthday and session.get("bday_seen") != now.date().isoformat()
     return page(
         "zehava/index.html", active="home",
-        greeting=ui.greeting(t, now.hour),
+        greeting=t["happy_birthday"] if birthday else ui.greeting(t, now.hour),
+        day_part=ui.day_part(now.hour),
+        day_icon=ui.DAY_ICONS[ui.day_part(now.hour)],
+        birthday=birthday,
+        wish=r.get_wish(user_id, now.year) if birthday else None,
+        birthday_pop=birthday_pop,
+        wishes=r.list_wishes(user_id) if birthday_pop else [],
+        motivation=motivation.pick(r, user_id, now, tasks),
         next_task=shown[0] if shown else None,
         tasks=shown,
         more_open=max(0, len(open_list) - HOME_TASKS),
@@ -68,7 +79,8 @@ def home():
         active_task=active_task,
         journey=trip,
         climb_pct=100 if trip["summit_reached"] else in_climb * 100 // journey.POINTS_PER_CLIMB,
-        today_points=r.journey_points(user_id, *clock.day_bounds(now.date())),
+        today_points=today_points,
+        day=journey.day_light(today_points),
         agenda=todays_agenda(user_id, now.date(), tasks),
         notes=r.list_notes(user_id)[:HOME_NOTES],
         stats=stats,
@@ -87,8 +99,33 @@ def calm():
     return back("zehava.home")
 
 
+@bp.route("/birthday/seen", methods=["POST"])
+def birthday_seen():
+    # סגירת חלון "מזל טוב". נשמר רק התאריך של היום, אז מחר (או בשנה הבאה) הוא יופיע שוב
+    session["bday_seen"] = clock.today().isoformat()
+    return back("zehava.home")
+
+
 @bp.route("/goal", methods=["POST"])
 def set_goal():
     repo().update_settings(uid(), goal_text=form_text("goal", 60))
     say("saved")
+    return back("zehava.home")
+
+
+@bp.route("/wish", methods=["POST"])
+def save_wish():
+    # משאלה ליום ההולדת. נשמרת רק ביום ההולדת עצמו, ואפשר גם להפוך אותה ל"יעד שלי"
+    today = clock.today()
+    if not ui.is_birthday(g.user["birthday"], today):
+        return back("zehava.home")
+    wish = form_text("wish", 300)
+    if not wish:
+        say("wish_required", "warn")
+        return back("zehava.home")
+    repo().save_wish(uid(), today.year, wish)
+    session["bday_seen"] = today.isoformat()      # המשאלה נשמרה, אז חלון "מזל טוב" נסגר
+    if request.form.get("make_goal") == "1":
+        repo().update_settings(uid(), goal_text=wish[:60])
+    say("wish_saved")
     return back("zehava.home")

@@ -107,7 +107,9 @@ class CsrfAndHeadersTests(TimeFlowTestCase):
         client, _ = self.register()
         response = client.get("/zehava/tasks")
         self.assertIn("script-src 'none'", response.headers["Content-Security-Policy"])
-        self.assertEqual(response.headers["X-Frame-Options"], "DENY")
+        # רק האתר עצמו רשאי להציג את הדפים במסגרת (בשביל הנגן). אתר זר לא
+        self.assertEqual(response.headers["X-Frame-Options"], "SAMEORIGIN")
+        self.assertIn("frame-ancestors 'self'", response.headers["Content-Security-Policy"])
         self.assertEqual(response.headers["Cache-Control"], "no-store")
         self.assertEqual(response.headers["X-Content-Type-Options"], "nosniff")
 
@@ -174,6 +176,12 @@ class PasswordAndTokenTests(TimeFlowTestCase):
         self.assertEqual(client.get(f"/zehava/verify/{token}").status_code, 200)
         self.assertIsNotNone(self.repo().get_user(user_id)["email_verified_at"])
         self.assertIn("msg-warn", self.html(client.get("/zehava/verify/garbage")))
+
+    def test_verify_banner_hides_after_resend(self):
+        client, _ = self.register(verified=False)
+        self.assertIn('class="banner"', self.html(client.get("/zehava")))
+        self.post(client, "/zehava/verify/resend")
+        self.assertNotIn('class="banner"', self.html(client.get("/zehava")))
 
 
 class AccountDeletionTests(TimeFlowTestCase):

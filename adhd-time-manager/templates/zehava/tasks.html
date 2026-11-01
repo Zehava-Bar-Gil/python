@@ -1,5 +1,5 @@
 {% extends "zehava/layout.html" %}
-{% from "zehava/macros.html" import icon, csrf, back_to, action, confirm_delete, card_head with context %}
+{% from "zehava/macros.html" import icon, csrf, back_to, action, confirm_delete, card_head, date_selects with context %}
 
 {% block title %}TimeFlow · {{ t.tasks_title }}{% endblock %}
 
@@ -14,6 +14,8 @@
     {% call card_head("todo", t.done_tasks if show_done else t.tasks_title, id="list-title") %}
       <span class="count"><span dir="ltr">{{ done_count }} / {{ open_count + done_count }}</span> {{ t.done_tasks }}</span>
     {% endcall %}
+    {# עיוורון זמן: כמה זמן, בערך, לוקח כל מה שפתוח. מוצג רק אם יש הערכות #}
+    {% if estimate_total and not show_done %}<p class="est-total">{{ icon("clock", 15) }} {{ t.est_total.format(time=estimate_total) }}</p>{% endif %}
 
     <!-- סינון: קטגוריה, ופתוחות או שהושלמו -->
     <nav class="chips" aria-label="{{ t.tag }}">
@@ -26,7 +28,7 @@
 
     <ul class="tasks">
       {% for task in tasks %}
-      <li class="task {% if task.status == 'done' %}done{% endif %} {% if task.priority == 'important' %}important{% endif %}" id="task-{{ task.id }}">
+      <li class="task {% if task.status == 'done' %}done{% endif %} {% if task.priority == 'important' %}important{% endif %} {% if just == ['task', task.id] %}just{% endif %}" id="task-{{ task.id }}">
         {{ action(url_for('zehava.toggle', task_id=task.id), "✓", "check", anchor="task-" ~ task.id,
                   aria=(t.mark_open if task.status == 'done' else t.mark_done) ~ ": " ~ task.title) }}
         <div class="task-body">
@@ -36,6 +38,7 @@
             {% if task.waiting_since %}{{ t.waiting_since.format(date=task.waiting_since.strftime('%d/%m')) }}
             {% elif task.due_date %}{{ task.due_date[8:10] }}/{{ task.due_date[5:7] }}{% endif %}
             {% if task.due_time %} · {{ task.due_time }}{% endif %}
+            {% if task.estimate_minutes %}<span class="est">{{ icon("clock", 13) }} {{ est_label(task.estimate_minutes) }}</span>{% endif %}
           </small>
           {% if task.details %}<p class="task-details" dir="auto">{{ task.details }}</p>{% endif %}
         </div>
@@ -50,14 +53,14 @@
 
         {# צעדים קטנים: נפתח ונסגר בלי JavaScript, בעזרת details #}
         {% if task.steps or task.status == 'open' %}
-        <details class="steps" {% if open_task == task.id or task.split_hint %}open{% endif %}>
+        <details class="steps" {% if open_task == task.id or just_task == task.id or task.split_hint %}open{% endif %}>
           <summary>
             {{ icon("steps", 15) }}
             {% if task.steps %}{{ t.steps }} · {{ task.steps_done }}/{{ task.steps | length }}{% else %}{{ t.split_task }}{% endif %}
           </summary>
           <ul class="step-list">
             {% for step in task.steps %}
-            <li class="step {% if step.done_at %}done{% endif %}">
+            <li class="step {% if step.done_at %}done{% endif %} {% if just == ['step', step.id] %}just{% endif %}">
               {{ action(url_for('zehava.step_toggle', task_id=task.id, step_id=step.id), "✓", "step-check", anchor="task-" ~ task.id, aria=t.mark_done ~ ": " ~ step.title) }}
               <span dir="auto">{{ step.title }}</span>
               {{ action(url_for('zehava.step_delete', task_id=task.id, step_id=step.id), "✕", "remove", anchor="task-" ~ task.id, aria=t.delete ~ ": " ~ step.title) }}
@@ -101,7 +104,7 @@
         <input type="text" name="title" maxlength="200" dir="auto" placeholder="{{ t.placeholder }}" required>
       </label>
       <div class="field-row">
-        <label class="field"><span>{{ t.due_date }} <small>({{ t.optional }})</small></span><input type="date" name="due_date"></label>
+        {{ date_selects("due", t.due_date, none, due_years) }}
         <label class="field"><span>{{ t.due_time }} <small>({{ t.optional }})</small></span><input type="time" name="due_time"></label>
       </div>
       <div class="field-row">
@@ -114,6 +117,14 @@
         <label class="field"><span>{{ t.priority }}</span>
           <select name="priority">
             {% for p in priorities %}<option value="{{ p }}" {% if p == 'normal' %}selected{% endif %}>{{ t['priority_' ~ p] }}</option>{% endfor %}
+          </select>
+        </label>
+      </div>
+      <div class="field-row">
+        <label class="field"><span>{{ t.estimate }} <small>({{ t.optional }})</small></span>
+          <select name="estimate">
+            <option value="">{{ t.no_estimate }}</option>
+            {% for m in estimates %}<option value="{{ m }}">{{ est_label(m) }}</option>{% endfor %}
           </select>
         </label>
       </div>

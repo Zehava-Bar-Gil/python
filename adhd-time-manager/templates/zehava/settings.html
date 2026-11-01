@@ -1,5 +1,5 @@
 {% extends "zehava/layout.html" %}
-{% from "zehava/macros.html" import icon, csrf, back_to, action, card_head with context %}
+{% from "zehava/macros.html" import icon, csrf, back_to, action, card_head, avatar_art, avatar_face, date_selects, new_password with context %}
 
 {% block title %}TimeFlow · {{ t.settings_title }}{% endblock %}
 
@@ -11,11 +11,11 @@
 </label>
 {% endmacro %}
 
-{% macro choice(name, label, options, hint=none) %}
+{% macro choice(name, label, options, hint=none, current=none) %}
 <fieldset class="seg">
   <legend>{{ label }}</legend>
   {% for value, text in options %}
-  <label class="seg-item"><input type="radio" name="{{ name }}" value="{{ value }}" {% if settings[name] == value %}checked{% endif %}><span>{{ text }}</span></label>
+  <label class="seg-item"><input type="radio" name="{{ name }}" value="{{ value }}" {% if (current or settings[name]) == value %}checked{% endif %}><span>{{ text }}</span></label>
   {% endfor %}
   {% if hint %}<small class="muted">{{ hint }}</small>{% endif %}
 </fieldset>
@@ -26,16 +26,65 @@
   <h1>{{ icon("settings", 30) }} {{ t.settings_title }}</h1>
 </header>
 
-<form class="settings-form" action="{{ url_for('zehava.settings') }}" method="post">
+<form class="settings-form" action="{{ url_for('zehava.settings') }}" method="post" enctype="multipart/form-data">
   {{ csrf() }}
   <div class="page-grid">
     <div class="stack">
+      {# פרופיל: השם מופיע בשפה של האתר, והעיגול למעלה מראה תמונה, אווטאר או את האות הראשונה #}
+      <section class="card glass" id="profile" aria-labelledby="profile-title">
+        {% call card_head("heart", t.sec_profile, id="profile-title") %}{% endcall %}
+        <div class="profile-top">
+          <span class="avatar avatar-big avatar-{{ user.avatar }}">{{ avatar_face(user) }}</span>
+          <div>
+            <strong>{{ full_name }}</strong>
+            <small class="muted">{{ t.profile_hint }}</small>
+          </div>
+        </div>
+        <div class="field-row">
+          <label class="field"><span>{{ t.first_name_he }}</span><input type="text" name="first_name_he" maxlength="40" dir="rtl" lang="he" autocomplete="given-name" value="{{ user.first_name_he or '' }}"></label>
+          <label class="field"><span>{{ t.first_name_en }}</span><input type="text" name="first_name_en" maxlength="40" dir="ltr" lang="en" autocomplete="given-name" value="{{ user.first_name_en or '' }}"></label>
+        </div>
+        <div class="field-row">
+          <label class="field"><span>{{ t.last_name_he }} <small>({{ t.optional }})</small></span><input type="text" name="last_name_he" maxlength="40" dir="rtl" lang="he" autocomplete="family-name" value="{{ user.last_name_he or '' }}"></label>
+          <label class="field"><span>{{ t.last_name_en }} <small>({{ t.optional }})</small></span><input type="text" name="last_name_en" maxlength="40" dir="ltr" lang="en" autocomplete="family-name" value="{{ user.last_name_en or '' }}"></label>
+        </div>
+        {# מין: לפיו האתר פונה בעברית בלשון זכר, נקבה, או בצורה כוללת (את.ה) #}
+        {{ choice("address", t.address, t.address_options.items(), t.address_hint) }}
+        {# יום, חודש ושנה בשלוש רשימות: כך התאריך כתוב כולו בשפה של האתר, בלי פורמט מעורבב של הדפדפן #}
+        {{ date_selects("birthday", t.birthday, user.birthday, birth_years, autocomplete="bday") }}
+        <small class="muted">{{ t.birthday_hint }}</small>
+
+        <fieldset class="avatar-pick">
+          <legend>{{ t.avatar_label }}</legend>
+          <label class="avatar-opt"><input type="radio" name="avatar" value="letter" {% if user.avatar == "letter" %}checked{% endif %}><span class="avatar avatar-letter">{{ name[:1] | upper }}</span><span class="sr-only">{{ t.avatar_letter }}</span></label>
+          {% if has_photo %}
+          <label class="avatar-opt"><input type="radio" name="avatar" value="photo" {% if user.avatar == "photo" %}checked{% endif %}><span class="avatar avatar-photo"><img class="avatar-photo" src="{{ url_for('zehava.avatar_photo') }}" alt="" width="40" height="40"></span><span class="sr-only">{{ t.avatar_photo }}</span></label>
+          {% endif %}
+          {% for key in avatars %}
+          <label class="avatar-opt"><input type="radio" name="avatar" value="{{ key }}" {% if user.avatar == key %}checked{% endif %}><span class="avatar avatar-{{ key }}">{{ avatar_art(key) }}</span><span class="sr-only">{{ t['avatar_' ~ key] }}</span></label>
+          {% endfor %}
+        </fieldset>
+        <label class="field"><span>{{ t.photo_upload }} <small>({{ t.optional }})</small></span><input type="file" name="photo" accept="image/jpeg,image/png,image/webp"></label>
+        <small class="muted">{{ t.photo_hint }}</small>
+        {% if has_photo %}
+        <button type="submit" class="text-link photo-delete" formaction="{{ url_for('zehava.photo_delete') }}" formnovalidate>{{ icon("trash", 14) }} {{ t.photo_delete }}</button>
+        {% endif %}
+
+        {% if wishes %}
+        <div class="wish-list">
+          <h3>{{ icon("sparkle", 15) }} {{ t.my_wishes }}</h3>
+          <ul>{% for wish in wishes %}<li><b>{{ wish.year }}</b> <span dir="auto">{{ wish.body }}</span></li>{% endfor %}</ul>
+        </div>
+        {% endif %}
+      </section>
+
       <section class="card glass" id="look" aria-labelledby="look-title">
         {% call card_head("sun", t.sec_look, id="look-title") %}{% endcall %}
-        {{ choice("theme", t.theme, [("auto", t.theme_auto), ("light", t.theme_light), ("dark", t.theme_dark)], t.theme_hint) }}
+        {{ choice("theme", t.theme, [("auto", t.theme_auto), ("clock", t.theme_clock), ("light", t.theme_light), ("dark", t.theme_dark)],
+                  t.theme_hint, current="clock" if settings.theme_by_clock else settings.theme) }}
         {{ choice("lang", t.language, [("he", "עברית"), ("en", "English")]) }}
+        {{ switch("calm_mode", t.calm_on, t.calm_hint) }}
         {{ switch("reduce_motion", t.reduce_motion, t.reduce_motion_hint) }}
-        <label class="field"><span>{{ t.display_name }}</span><input type="text" name="display_name" maxlength="40" dir="auto" value="{{ user.display_name }}"></label>
       </section>
 
       <section class="card glass" id="focus" aria-labelledby="focus-title">
@@ -88,7 +137,8 @@
 <div class="page-grid">
   <div class="stack">
     <section class="card glass" id="data" aria-labelledby="data-title">
-      {% call card_head("download", t.export_data, id="data-title") %}{% endcall %}
+      {% call card_head("download", t.my_data, id="data-title") %}{% endcall %}
+      <p class="muted small">{{ t.export_hint }}</p>
       <a class="btn btn-soft" href="{{ url_for('zehava.export_data') }}">{{ icon("download", 16) }} {{ t.export_data }}</a>
       <details class="confirm-block">
         <summary class="btn btn-ghost">{{ icon("trash", 16) }} {{ t.delete_learning }}</summary>
@@ -111,10 +161,10 @@
   <div class="stack">
     <section class="card glass" id="account" aria-labelledby="account-title">
       {% call card_head("lock", t.change_password, id="account-title") %}{% endcall %}
-      <form class="form-grid" action="{{ url_for('zehava.change_password') }}" method="post">
+      <form class="form-grid" action="{{ url_for('zehava.change_password') }}" method="post" novalidate>
         {{ csrf() }}
         <label class="field"><span>{{ t.current_password }}</span><input type="password" name="current_password" autocomplete="current-password" required></label>
-        <label class="field"><span>{{ t.new_password }}</span><input type="password" name="new_password" autocomplete="new-password" minlength="8" required><small class="muted">{{ t.password_hint }}</small></label>
+        <div class="field"><label for="new-password">{{ t.new_password }}</label>{{ new_password(name="new_password", field="new-password") }}</div>
         <button type="submit" class="btn btn-soft">{{ t.save }}</button>
       </form>
       {% if not email_verified %}

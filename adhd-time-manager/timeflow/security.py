@@ -27,7 +27,8 @@ CSP = "; ".join([
     "img-src 'self' data:",
     "media-src 'self'",
     "form-action 'self' https://accounts.google.com",
-    "frame-ancestors 'none'",
+    # הנגן מציג את האתר בתוך iframe, ולכן רק האתר עצמו רשאי למסגר את הדפים (לא אתרים זרים)
+    "frame-ancestors 'self'",
     "base-uri 'none'",
     "object-src 'none'",
 ])
@@ -128,7 +129,7 @@ def read_token(purpose, token, max_age):
 def add_security_headers(response):
     response.headers.setdefault("Content-Security-Policy", CSP)
     response.headers.setdefault("X-Content-Type-Options", "nosniff")
-    response.headers.setdefault("X-Frame-Options", "DENY")
+    response.headers.setdefault("X-Frame-Options", "SAMEORIGIN")
     response.headers.setdefault("Referrer-Policy", "same-origin")
     response.headers.setdefault("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
     if current_app.config.get("SESSION_COOKIE_SECURE"):

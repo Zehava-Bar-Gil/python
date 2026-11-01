@@ -4,7 +4,7 @@ from datetime import timedelta
 from flask import current_app, g, redirect, request, session, url_for
 
 from .. import accounts, clock, mailer, security
-from . import back, bp, current_lang, page, repo, say, uid
+from . import back, bp, current_lang, page, repo, say, say_password_level, uid
 
 MAX_ACCOUNT_EMAILS_PER_HOUR = 3
 
@@ -49,6 +49,7 @@ def register():
             security.login_user(user)
             g.user, g.settings = user, repo().get_settings(user_id)
             say("welcome")
+            say_password_level(request.form.get("password", ""), user["email"])
             if _send_account_email(user, "verify", "zehava.verify") == "sent":
                 say("verify_sent")
             return redirect(url_for("zehava.home"))
@@ -75,6 +76,8 @@ def verify_resend():
         result = _send_account_email(g.user, "verify", "zehava.verify")
         say({"sent": "verify_sent", "limited": "err_too_many", "failed": "mail_error"}[result],
             "ok" if result == "sent" else "warn")
+    # אחרי לחיצה על הקישור ההתראה בדף הבית נעלמת, עד היציאה מהחשבון. אפשר לשלוח שוב מההגדרות
+    session["verify_banner_hidden"] = True
     return back("zehava.settings")
 
 
@@ -100,6 +103,7 @@ def reset(token):
         if not errors:
             security.logout_user()
             say("reset_ok")
+            say_password_level(request.form.get("password", ""))
             return redirect(url_for("zehava.login"))
     return page("zehava/reset.html", errors=errors, token=token)
 

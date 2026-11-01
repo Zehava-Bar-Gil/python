@@ -20,7 +20,7 @@ from pathlib import Path
 
 from flask import render_template, url_for
 
-from . import clock, focus_timer, journey, security
+from . import clock, focus_timer, journey, security, ui
 from .db import connect
 from .repository import Repository
 from .texts import texts
@@ -89,7 +89,7 @@ def send_account_email(app, repo, user, kind, lang, link):
     # kind: "verify" או "reset". מחזיר True אם נשלח
     t = texts(lang)
     html = render_template("zehava/email_account.html", t=t, lang=lang, kind=kind, link=link,
-                           name=user["display_name"])
+                           name=ui.first_name(user, lang))
     body = t[f"{kind}_body"] + "\n\n" + link + "\n\n" + t["mail_ignore"]
     try:
         send_email(app.config, user["email"], t[f"{kind}_subject"], html, body)
@@ -117,10 +117,11 @@ def daily_summary(repo, user_id, day):
 
 def render_daily(app, user, lang, summary, pulse_link, unsubscribe_link):
     t = texts(lang)
-    html = render_template("zehava/email.html", t=t, lang=lang, name=user["display_name"], summary=summary,
+    name = ui.first_name(user, lang)   # השם בשפה של המייל
+    html = render_template("zehava/email.html", t=t, lang=lang, name=name, summary=summary,
                            pulse_link=pulse_link, unsubscribe_link=unsubscribe_link,
                            today_label=f"{clock.today().day} {t['months'][clock.today().month - 1]}")
-    lines = [t["mail_hello"].format(name=user["display_name"]), "", t["mail_intro"]]
+    lines = [t["mail_hello"].format(name=name), "", t["mail_intro"]]
     lines += [f"- {title}" for title in summary["done"]]
     lines += [f"{t['mail_sessions']}: {summary['sessions']}", f"{t['mail_focus_time']}: {summary['focus_minutes']}",
               "", f"{t['mail_pulse_cta']}: {pulse_link}", "", t["mail_closing"], "",

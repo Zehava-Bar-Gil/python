@@ -7,7 +7,13 @@ from flask import current_app, g
 
 SCHEMA_FILE = Path(__file__).with_name("schema.sql")
 # כל מיגרציה מקבלת מספר. גרסה 1 היא הסכמה המלאה. שינויים עתידיים יתווספו כ-2, 3...
-MIGRATIONS = {1: SCHEMA_FILE}
+# גרסה 2: זמן משוער למשימה והצמדת פתק (רק עמודות חדשות)
+# גרסה 3: פרופיל אישי (שם בשתי שפות, יום הולדת, תמונה או אווטאר, משאלות)
+# גרסה 4: מצב תצוגה "לפי השעה" (בהיר ביום, כהה בערב ובלילה)
+MIGRATIONS = {1: SCHEMA_FILE, 2: SCHEMA_FILE.with_name("migration_002.sql"),
+              3: SCHEMA_FILE.with_name("migration_003.sql"),
+              4: SCHEMA_FILE.with_name("migration_004.sql"),
+              5: SCHEMA_FILE.with_name("migration_005.sql")}
 LATEST_VERSION = max(MIGRATIONS)
 
 

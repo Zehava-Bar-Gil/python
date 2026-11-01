@@ -1,11 +1,14 @@
 """מה שמשותף לתצוגה: אייקונים, תפריטים, ברכה ולוח חודשי."""
 import calendar
 
+from . import clock
+
 # אייקונים בקו דק (נתיבי SVG בגודל 24x24). הועברו מ-app.py של גרסה 1, ונוספו כמה חדשים
 ICONS = {
     "todo": "M9 11l3 3L22 4 M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11",
     "notes": "M16 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8Z M15 3v4a2 2 0 0 0 2 2h4",
     "timer": "M10 2h4 M12 14l3-3 M4 14a8 8 0 1 0 16 0a8 8 0 1 0-16 0",
+    # עגבנייה בקו דק, באותו סגנון של שאר האייקונים (שקוף, בצבע הטקסט)
     "tomato": "M12 8c-4.4 0-8 2.6-8 6.4S7.6 21 12 21s8-2.8 8-6.6S16.4 8 12 8z M12 8V4.5 M12 8c-1.2-1.6-3-2.2-4.6-1.8 M12 8c1.2-1.6 3-2.2 4.6-1.8 M12 8l-2 2.2 M12 8l2 2.2",
     "snooze": "M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z",
     "calendar": "M8 2v4 M16 2v4 M3 10h18 M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z",
@@ -41,7 +44,14 @@ ICONS = {
     "heart": "M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1 1.1L12 21l7.8-7.5 1-1.1a5.5 5.5 0 0 0 0-7.8z",
     "prev": "M15 18l-6-6 6-6",
     "next": "M9 18l6-6-6-6",
+    "chevron": "M6 9l6 6 6-6",
+    "pin": "M12 17v5 M9 10.8a2 2 0 0 1-1.1 1.8l-1.8.9A2 2 0 0 0 5 15.2V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.8a2 2 0 0 0-1.1-1.8l-1.8-.9a2 2 0 0 1-1.1-1.8V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z",
     "leaf": "M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.5 19 2c1 2 2 4.2 2 8 0 5.5-4.8 10-10 10z M2 21c0-3 1.9-5.4 5.1-6",
+    # אייקוני הברכה לפי השעה, באותו קו דק של התפריט: שמש מבין ענן, סהר עם כוכב, ירח מלא שמחייך
+    "cloud_sun": "M12 2v2 M4.9 4.9l1.4 1.4 M20 12h2 M19.1 4.9l-1.4 1.4 M15.9 12.7a4 4 0 0 0-5.9-4.1 M13 22H7a5 5 0 1 1 4.9-6H13a3 3 0 0 1 0 6z",
+    "moon_star": "M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z M20 3v4 M22 5h-4",
+    # ירח בלילה: סהר עם עין עצומה וחיוך, ושני כוכבים קטנים
+    "moon_smile": "M13.5 3.2A9 9 0 1 0 20.8 14 7 7 0 0 1 13.5 3.2Z M5.6 12.4q.9.9 1.8 0 M6.6 16.2q1.8 1.4 3.6.2 M18 3v3 M16.5 4.5h3 M21.5 8.5v1.6 M20.7 9.3h1.6",
 }
 
 # התפריט העליון: בדיוק חמשת הכלים (מפתח, נתיב, אייקון). הטקסט: nav_<מפתח>
@@ -64,19 +74,84 @@ PULSE_FACES = {1: "😣", 2: "😕", 3: "😐", 4: "🙂", 5: "😄"}
 PULSE_AFTER_HOUR = 17
 
 
-def greeting(t, hour):
+def day_part(hour):
+    # חלק היום לפי שעון ישראל: קובע את הברכה, את האייקון שלידה ואת מצב התצוגה "לפי השעה"
     if 5 <= hour < 12:
-        return t["morning"]
+        return "morning"
     if 12 <= hour < 17:
-        return t["afternoon"]
+        return "afternoon"
     if 17 <= hour < 22:
-        return t["evening"]
-    return t["night"]
+        return "evening"
+    return "night"
+
+
+# האייקון שליד הברכה, לכל חלק של היום
+def due_years(current=None):
+    # השנים ברשימה של תאריך משימה: משנה שעברה ועד חמש שנים קדימה.
+    # אם למשימה כבר יש תאריך בשנה אחרת, גם השנה שלה מופיעה
+    this_year = clock.today().year
+    years = list(range(this_year - 1, this_year + 6))
+    year = int(current[:4]) if current else None
+    if year and year not in years:
+        years = sorted(years + [year])
+    return years
+
+
+DAY_ICONS = {"morning": "cloud_sun", "afternoon": "sun", "evening": "moon_star", "night": "moon_smile"}
+
+
+def greeting(t, hour):
+    return t[day_part(hour)]
+
+
+def clock_theme(hour):
+    # בבוקר ובצהריים בהיר, בערב ובלילה כהה
+    return "light" if day_part(hour) in ("morning", "afternoon") else "dark"
+
+
+# המרחבים הקוליים (Soundscape): מפתח ושם. הקבצים: static/sounds/<מפתח>.ogg ו-.mp3
+SOUND_SPACES = {
+    "deep": "Deep Focus",
+    "calm": "Calm",
+    "study": "Study",
+    "reading": "Reading & Recall",
+}
+
+# אווטארים מוכנים: ארבע דמויות (לפי סוג שיער) ושני סמלים מהנוף של האתר. "letter" = האות הראשונה של השם
+AVATARS = ["curls", "long", "bun", "short", "balloon", "mountain"]
+AVATAR_CHOICES = ["letter", "photo", *AVATARS]
+
+
+def first_name(user, lang):
+    # השם בשפה של האתר עכשיו. אם הוא חסר, השם בשפה השנייה, ואם גם הוא חסר, השם הכללי
+    other = "en" if lang == "he" else "he"
+    return user.get(f"first_name_{lang}") or user.get(f"first_name_{other}") or user["display_name"]
+
+
+def full_name(user, lang):
+    other = "en" if lang == "he" else "he"
+    last = user.get(f"last_name_{lang}") or user.get(f"last_name_{other}") or ""
+    return f"{first_name(user, lang)} {last}".strip()
+
+
+def is_birthday(birthday, today):
+    # יום ההולדת לפי שעון ישראל. מי שנולדה ב-29 בפברואר חוגגת ב-28 בשנה שאינה מעוברת
+    if not birthday:
+        return False
+    month, day = int(birthday[5:7]), int(birthday[8:10])
+    if (month, day) == (2, 29) and not calendar.isleap(today.year):
+        day = 28
+    return (today.month, today.day) == (month, day)
 
 
 def minutes_label(t, seconds):
     hours, minutes = divmod(int(seconds) // 60, 60)
     return t["hours_minutes"].format(h=hours, m=minutes) if hours else f"{minutes} {t['min']}"
+
+
+def estimate_label(t, minutes):
+    # "כ-15 דק'", ובשעות שלמות או חצאי שעה משפט טבעי: "כשעה", "כשעה וחצי", "כשעתיים"
+    return t.get(f"est_{minutes}") or t["est_min"].format(n=minutes)
 
 
 def month_grid(year, month, marks=None):

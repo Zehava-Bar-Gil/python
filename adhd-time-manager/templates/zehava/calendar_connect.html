@@ -16,7 +16,8 @@
     <li>{{ icon("lock", 16) }} <span>{{ t.consent_store }}</span></li>
     <li>{{ icon("unlink", 16) }} <span>{{ t.consent_revoke }}</span></li>
   </ul>
-  <form class="form-grid" action="{{ url_for('zehava.calendar_connect') }}" method="post">
+  {# target="_top": Google לא נפתח בתוך מסגרת, אז גם כשהנגן פתוח החיבור קורה בחלון כולו #}
+  <form class="form-grid" action="{{ url_for('zehava.calendar_connect') }}" method="post" target="_top">
     {{ csrf() }}
     <label class="check-row"><input type="checkbox" name="consent" value="1" required> <span>{{ t.consent_check }}</span></label>
     <div class="form-actions">

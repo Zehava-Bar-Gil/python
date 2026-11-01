@@ -1,7 +1,7 @@
 """פתקיות: כתיבה מהירה בכתב יד, תגית, והעברה למשימה, לצעד או ל-Snooze."""
 from flask import abort, redirect, request, url_for
 
-from . import back, bp, form_text, page, repo, say, uid
+from . import back, bp, form_text, mark_just, page, repo, say, uid
 from .task_views import task_options
 
 COLORS = ["yellow", "pink", "green", "blue"]
@@ -34,8 +34,9 @@ def notes():
 def note_add():
     fields = note_fields()
     if fields["body"]:
-        repo().create_note(uid(), **fields)
+        note_id = repo().create_note(uid(), **fields)
         say("note_added")
+        mark_just("note", note_id)
     return back("zehava.notes")
 
 
@@ -47,8 +48,19 @@ def note_edit(note_id):
         if fields["body"]:
             repo().update_note(uid(), note_id, **fields)
             say("note_saved")
+            mark_just("note", note_id)
             return redirect(url_for("zehava.notes") + f"#note-{note_id}")
     return page("zehava/note_edit.html", active="notes", note=note, colors=COLORS)
+
+
+@bp.route("/notes/<int:note_id>/pin", methods=["POST"])
+def note_pin(note_id):
+    # הצמדה: פתק חשוב עולה לראש הלוח, וגם לדף הבית. לחיצה נוספת מורידה אותו בחזרה
+    note = owned_note(note_id)
+    repo().set_note_pinned(uid(), note_id, not note["pinned"])
+    say("note_unpinned" if note["pinned"] else "note_pinned")
+    mark_just("note", note_id)
+    return back("zehava.notes")
 
 
 @bp.route("/notes/delete/<int:note_id>", methods=["POST"])

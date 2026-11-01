@@ -1,5 +1,5 @@
 {% extends "zehava/base.html" %}
-{% from "zehava/macros.html" import icon, csrf, back_to, flashes with context %}
+{% from "zehava/macros.html" import icon, csrf, back_to, flashes, avatar_face with context %}
 
 {% block body %}
 <!-- תפריט עליון: בדיוק חמשת הכלים לניהול זמן -->
@@ -21,12 +21,21 @@
   </nav>
   {% endif %}
   <div class="nav-user">
-    <form class="inline-form" action="{{ url_for('zehava.lang', code=t.other_lang) }}" method="post">
+    {# בתוך הנגן: מה מתנגן עכשיו, וכפתור עצירה שחוזר לאותו דף בלי הנגן #}
+    {% if framed and playing %}
+    <form class="inline-form now-playing" action="{{ url_for('zehava.listen_stop') }}" method="post" target="_top">
+      {{ csrf() }}<input type="hidden" name="next" value="{{ request.full_path.rstrip('?') }}">
+      <span class="eq" aria-hidden="true"><i></i><i></i><i></i></span>
+      <span lang="en">{{ sound_spaces[playing] }}</span>
+      <button type="submit" class="np-stop" aria-label="{{ t.stop_music }}" title="{{ t.stop_music }}">{{ icon("pause", 14) }}</button>
+    </form>
+    {% endif %}
+    <form class="inline-form lang-switch" action="{{ url_for('zehava.lang', code=t.other_lang) }}" method="post">
       {{ csrf() }}{{ back_to() }}
       <button type="submit" class="pill" lang="{{ t.other_lang }}">{{ t.switch }}</button>
     </form>
     {% if user %}
-    <a class="avatar" href="{{ url_for('zehava.settings') }}" aria-label="{{ t.nav_settings }}" title="{{ user.display_name }}">{{ user.display_name[:1] | upper }}</a>
+    <a class="avatar avatar-{{ user.avatar }}" href="{{ url_for('zehava.settings') }}" aria-label="{{ t.nav_settings }}" title="{{ full_name }}">{{ avatar_face(user) }}</a>
     {% endif %}
   </div>
 </header>
@@ -46,7 +55,7 @@
 
 <main class="main {% block main_class %}page{% endblock %}" id="content" tabindex="-1">
   {{ flashes() }}
-  {% if user and not user.email_verified_at and active == "home" %}
+  {% if user and not user.email_verified_at and active == "home" and not session.verify_banner_hidden %}
   <div class="banner" role="note">
     <span>{{ icon("mail", 16) }} {{ t.verify_banner }}</span>
     <form class="inline-form" action="{{ url_for('zehava.verify_resend') }}" method="post">
@@ -57,6 +66,7 @@
   {% endif %}
   {% block content %}{% endblock %}
 </main>
+
 {% if user %}
 <!-- Footer: זכויות יוצרים עם קישור ללינקדאין, ומשפט המוטיבציה -->
 <footer class="site-footer">

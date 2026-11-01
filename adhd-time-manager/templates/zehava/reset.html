@@ -7,11 +7,10 @@
 {% if errors %}
 <ul class="form-error" role="alert">{% for key in errors %}<li>{{ t[key] }}</li>{% endfor %}</ul>
 {% endif %}
-<form class="login-form" action="{{ url_for('zehava.reset', token=token) }}" method="post">
+<form class="login-form" action="{{ url_for('zehava.reset', token=token) }}" method="post" novalidate>
   {{ csrf() }}
   <label for="password">{{ t.new_password }}</label>
-  <input id="password" type="password" name="password" minlength="8" autocomplete="new-password" aria-describedby="pw-hint" required autofocus>
-  <small id="pw-hint" class="muted">{{ t.password_hint }}</small>
+  {{ new_password(autofocus=true) }}
   <button type="submit" class="btn btn-primary">{{ t.reset_button }}</button>
 </form>
 {% endblock %}

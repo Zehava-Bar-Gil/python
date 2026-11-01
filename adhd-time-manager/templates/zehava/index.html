@@ -20,19 +20,65 @@
 <span class="journey" style="--from: {{ journey.from_top }}%; --to: {{ journey.top }}%">
   <img src="{{ url_for('static', filename='img/balloon.png') }}" alt="">
 </span>
+<!-- האור של היום: הנוף מתבהר לאט ככל שמתקדמים היום (0 = כמו תמיד) -->
+<span class="day-glow" style="--day: {{ day.level }}"></span>
 <span class="trail-label tl-steps">{{ icon("clock", 16) }} {{ t.daily_steps }} · {{ today_points }}</span>
 <span class="trail-label tl-progress">{{ icon("progress_nav", 16) }} {{ t.climb.format(n=journey.climb) }} · {{ journey.lit }}/6</span>
 <span class="trail-label tl-goal" dir="auto">{{ icon("mountain", 16) }} {{ settings.goal_text or t.goal_default }}</span>
 {% endblock %}
 
 {% block content %}
+{# טופס המשאלה: בכרטיס של יום ההולדת ובחלון "מזל טוב". field = ה-id של השדה, כדי שלא יהיו שניים זהים #}
+{% macro wish_form(text="", field="wish") %}
+<form class="wish-form" action="{{ url_for('zehava.save_wish') }}" method="post">
+  {{ csrf() }}{{ back_to() }}
+  <label class="sr-only" for="{{ field }}">{{ t.wish_label }}</label>
+  <textarea id="{{ field }}" name="wish" rows="2" maxlength="300" dir="auto" required placeholder="{{ t.wish_placeholder }}">{{ text }}</textarea>
+  <div class="wish-actions">
+    <label class="check-inline"><input type="checkbox" name="make_goal" value="1"> {{ t.wish_make_goal }}</label>
+    <button type="submit" class="btn btn-primary">{{ icon("sparkle", 16) }} {{ t.wish_save }}</button>
+  </div>
+</form>
+{% endmacro %}
 <section class="hero">
   <div class="greeting">
-    <h1>{{ icon("sun", 34) }} <span>{{ greeting }}, <bdi>{{ user.display_name }}</bdi></span></h1>
-    <p>{{ t.promise }}</p>
+    <h1><span>{{ greeting }}, <bdi>{{ name }}</bdi></span> <span class="day-icon day-{{ day_part }}">{{ icon(day_icon, 34) }}</span></h1>
+    {# הודעה לפי המצב (יום עמוס, חזרה אחרי הפסקה, ערב...). אם אין מצב מיוחד: ההבטחה הרגילה #}
+    <p {% if motivation %}class="motivation"{% endif %}>{{ t[motivation] if motivation else t.promise }}</p>
+
+    {# יום הולדת: מקום לכתוב משאלה לשנה הקרובה, ואפשר להפוך אותה ליעד #}
+    {% if birthday %}
+    <section class="birthday glass" aria-labelledby="bday-title">
+      <span class="bday-sparks" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></span>
+      <h2 id="bday-title">{{ icon("sparkle", 20) }} {{ t.birthday_title }}</h2>
+      {% if wish %}
+      <p class="muted">{{ t.wish_yours }}</p>
+      <p class="bday-wish" dir="auto">{{ wish.body }}</p>
+      <details class="bday-edit">
+        <summary>{{ icon("edit", 14) }} {{ t.wish_edit }}</summary>
+        {{ wish_form(wish.body) }}
+      </details>
+      {% else %}
+      <p>{{ t.birthday_text }}</p>
+      {{ wish_form() }}
+      {% endif %}
+    </section>
+    {% endif %}
 
     <!-- שכבה 1, "עכשיו": צעד אחד ופעולה אחת -->
     <section class="now glass" aria-labelledby="now-title">
+      {% if not settings.calm_mode %}
+      <!-- תמונה בתוך תמונה: חלון קטן אל הפסגה. הכדור עולה בו לפי ההתקדמות של היום,
+           והתג הקטן שבפינה מראה כמה מהיום כבר מואר -->
+      <figure class="now-window day-{{ day.stage }}" style="--day: {{ day.level }}; --pct: {{ day.pct }}">
+        <img class="now-balloon" src="{{ url_for('static', filename='img/balloon.png') }}" alt="">
+        <figcaption class="now-window-text">{{ t['day_' ~ day.stage] }}</figcaption>
+        <span class="day-chip {% if just and just[0] in ('task', 'step') %}just{% endif %}" role="img" aria-label="{{ t.day_light }}: {{ t.day_points.format(n=day.points, goal=day.goal) }}">
+          <span class="day-ring"></span>
+          <span class="day-num" dir="ltr">{{ day.pct }}%</span>
+        </span>
+      </figure>
+      {% endif %}
       <h2 id="now-title" class="now-label">{{ t.now }}</h2>
       {% if timer.active %}
         <p class="now-state">{{ icon("timer", 16) }} {{ t.paused_now if timer.paused else t.running_now }} · {{ t['kind_' ~ timer.kind] }}</p>
@@ -43,6 +89,7 @@
       {% elif next_task %}
         <p class="now-state">{{ t.next_step }}</p>
         <strong class="now-task" dir="auto">{{ next_task.title }}</strong>
+        {% if next_task.estimate_minutes %}<span class="est">{{ icon("clock", 14) }} {{ est_label(next_task.estimate_minutes) }}</span>{% endif %}
         {% if next_task.next_step %}<span class="tiny" dir="auto">{{ t.tiny_step }} {{ next_task.next_step.title }}</span>{% endif %}
         <div class="now-actions">
           {{ action(url_for('zehava.focus_start', minutes=settings.focus_minutes), t.start_focus, "btn btn-primary btn-cta", "play", extra={"task_id": next_task.id}) }}
@@ -66,7 +113,7 @@
       {{ action(url_for('zehava.calm'), t.calm_off if settings.calm_mode else t.calm_on, "btn btn-glass", "leaf") }}
       <a class="btn btn-glass" href="{{ url_for('zehava.snooze') }}">{{ icon("snooze", 18) }} {{ t.unload }}</a>
       {% if settings.sound_pref != "none" %}
-      <a class="btn btn-glass" href="{{ url_for('zehava.sounds') }}" target="_blank" rel="noopener">{{ icon("headphones", 18) }} {{ t.sounds }}<span class="sr-only"> ({{ t.open_sounds }})</span></a>
+      <a class="btn btn-glass" href="{{ url_for('zehava.sounds') }}">{{ icon("headphones", 18) }} {{ t.sounds }}</a>
       {% endif %}
     </div>
   </div>
@@ -91,6 +138,37 @@
 <!-- מצב רגוע: כל השאר מחכה בתפריט -->
 <p class="calm-note glass">{{ icon("leaf", 18) }} {{ t.calm_note }}</p>
 {% else %}
+<!-- הצעדים הבאים: שלושה קלפים שנפתחים בהדרגה. HTML ו-CSS בלבד, בלי JavaScript:
+     details זוכר אם הקלף פתוח, ו-summary הוא החלק שלוחצים עליו -->
+{% if tasks %}
+<section class="deck-wrap" aria-labelledby="deck-title">
+  <div class="deck-head">
+    <h2 id="deck-title" class="section-title">{{ t.deck_title }}</h2>
+    <small>{{ t.deck_hint }}</small>
+  </div>
+  <ul class="deck">
+    {% for task in tasks[:3] %}
+    <li class="deck-item">
+      <details class="deck-card glass">
+        <summary class="deck-front">
+          <span class="deck-num" dir="ltr">{{ loop.index }} / {{ loop.length }}</span>
+          <strong class="deck-task" dir="auto">{{ task.title }}</strong>
+          {% if task.tag %}<span class="tag tag-{{ task.tag }}">{{ tags[task.tag][lang_index] }}</span>{% endif %}
+          {% if task.estimate_minutes %}<span class="est">{{ icon("clock", 13) }} {{ est_label(task.estimate_minutes) }}</span>{% endif %}
+          <span class="deck-more">{{ icon("chevron", 16) }} <span class="when-closed">{{ t.deck_open }}</span><span class="when-open">{{ t.deck_close }}</span></span>
+        </summary>
+        <div class="deck-step">
+          <span class="deck-num">{{ t.tiny_step }}</span>
+          <strong class="deck-task" dir="auto">{{ task.next_step.title if task.next_step else t.no_tiny_step }}</strong>
+          {{ action(url_for('zehava.focus_start', minutes=5), t.start_small, "btn btn-primary", "play", extra={"task_id": task.id}) }}
+        </div>
+      </details>
+    </li>
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}
+
 <!-- שכבה 2, "התכנון שלי" -->
 <h2 class="section-title">{{ t.planning }}</h2>
 <div class="board">
@@ -102,11 +180,12 @@
       <p class="date">{{ today_label }}</p>
       <ul class="tasks">
         {% for task in tasks %}
-        <li class="task" id="task-{{ task.id }}">
+        <li class="task {% if just == ['task', task.id] %}just{% endif %}" id="task-{{ task.id }}">
           {{ action(url_for('zehava.toggle', task_id=task.id), "✓", "check", aria=t.mark_done ~ ": " ~ task.title) }}
           <div class="task-body">
             <span class="task-text" dir="auto">{{ task.title }}</span>
             {% if task.due_time %}<small>{{ task.due_time }}</small>{% endif %}
+            {% if task.estimate_minutes %}<small class="est">{{ icon("clock", 12) }} {{ est_label(task.estimate_minutes) }}</small>{% endif %}
             {% if task.next_step %}<small dir="auto">{{ t.tiny_step }} {{ task.next_step.title }}</small>{% endif %}
           </div>
           {% if task.tag %}<span class="tag tag-{{ task.tag }}">{{ tags[task.tag][lang_index] }}</span>{% endif %}
@@ -129,7 +208,7 @@
 
   <div class="col">
     <section class="card glass" aria-labelledby="home-timer">
-            {% call card_head("tomato", t.nav_timer, id="home-timer") %}{% endcall %}
+      {% call card_head("tomato", t.nav_timer, id="home-timer") %}{% endcall %}
       {% if timer.active %}
       <div class="timer">
         {{ timer_ring(timer) }}
@@ -182,7 +261,7 @@
       {% endcall %}
       <div class="notes">
         {% for note in notes %}
-        <div class="note note-{{ note.color }}"><p dir="auto">{{ note.body | truncate(90) }}</p></div>
+        <div class="note note-{{ note.color }} {% if note.pinned %}pinned{% endif %}">{% if note.pinned %}<span class="sr-only">{{ t.pinned }}: </span>{% endif %}<p dir="auto">{{ note.body | truncate(90) }}</p></div>
         {% else %}
         <p class="muted small">{{ t.notes_empty }}</p>
         {% endfor %}
@@ -202,6 +281,34 @@
       <p class="handwriting">{{ t.journey_quote }} ♡</p>
     </section>
   </div>
+</div>
+{% endif %}
+
+{% if birthday_pop %}
+<!-- חלון "מזל טוב" ביום ההולדת. בלי JavaScript: dialog פתוח מהשרת, והסגירה היא טופס קטן
+     ששומר שכבר ראית את החלון היום. הבלונים עולים ב-CSS בלבד, ונעצרים במצב "הפחתת תנועה" -->
+<div class="bday-overlay">
+  <span class="balloons" aria-hidden="true">{% for n in range(1, 9) %}<i></i>{% endfor %}</span>
+  <dialog open class="bday-pop glass" aria-labelledby="pop-title">
+    <h2 id="pop-title" class="pop-title">{{ t.bday_pop_title }}, <bdi>{{ name }}</bdi>!</h2>
+    <p class="pop-text">{{ t.bday_pop_text }}</p>
+    {% if not wish %}
+    <p class="muted">{{ t.birthday_text }}</p>
+    {{ wish_form(field="pop-wish") }}
+    {% endif %}
+    <section class="wish-list" aria-labelledby="wish-list-title">
+      <h3 id="wish-list-title">{{ t.wish_list }} {{ icon("sparkle", 16) }}</h3>
+      {% if wishes %}
+      <ul>{% for item in wishes %}<li><b>{{ item.year }}</b> <span dir="auto">{{ item.body }}</span></li>{% endfor %}</ul>
+      {% else %}
+      <p class="muted small">{{ t.wish_list_empty }}</p>
+      {% endif %}
+    </section>
+    <form class="pop-close" action="{{ url_for('zehava.birthday_seen') }}" method="post">
+      {{ csrf() }}{{ back_to() }}
+      <button type="submit" class="btn btn-glass">{{ t.bday_close }}</button>
+    </form>
+  </dialog>
 </div>
 {% endif %}
 {% endblock %}

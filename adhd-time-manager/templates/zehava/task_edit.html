@@ -1,5 +1,5 @@
 {% extends "zehava/layout.html" %}
-{% from "zehava/macros.html" import icon, csrf, card_head with context %}
+{% from "zehava/macros.html" import icon, csrf, card_head, date_selects with context %}
 
 {% block title %}TimeFlow · {{ t.edit_task }}{% endblock %}
 
@@ -17,7 +17,7 @@
       <input type="text" name="title" maxlength="200" dir="auto" value="{{ task.title }}" required>
     </label>
     <div class="field-row">
-      <label class="field"><span>{{ t.due_date }} <small>({{ t.optional }})</small></span><input type="date" name="due_date" value="{{ task.due_date or '' }}"></label>
+      {{ date_selects("due", t.due_date, task.due_date, due_years) }}
       <label class="field"><span>{{ t.due_time }} <small>({{ t.optional }})</small></span><input type="time" name="due_time" value="{{ task.due_time or '' }}"></label>
     </div>
     <div class="field-row">
@@ -30,6 +30,14 @@
       <label class="field"><span>{{ t.priority }}</span>
         <select name="priority">
           {% for p in priorities %}<option value="{{ p }}" {% if p == task.priority %}selected{% endif %}>{{ t['priority_' ~ p] }}</option>{% endfor %}
+        </select>
+      </label>
+    </div>
+    <div class="field-row">
+      <label class="field"><span>{{ t.estimate }} <small>({{ t.optional }})</small></span>
+        <select name="estimate">
+          <option value="">{{ t.no_estimate }}</option>
+          {% for m in estimates %}<option value="{{ m }}" {% if m == task.estimate_minutes %}selected{% endif %}>{{ est_label(m) }}</option>{% endfor %}
         </select>
       </label>
     </div>

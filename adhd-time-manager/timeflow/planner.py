@@ -7,6 +7,7 @@ PRIORITY_ORDER = {"important": 0, "normal": 1, "later": 2}
 PRIORITIES = list(PRIORITY_ORDER)
 SNOOZE_HINT_AFTER = 3   # אחרי כמה דחיות מציעים בעדינות לפרק משימה
 SNOOZE_OPTIONS = [5, 10, 15, 30, 60]
+ESTIMATES = [5, 10, 15, 25, 45, 60, 90, 120]   # זמן משוער בדקות: רשימה קצרה, כדי שלא יהיה צריך לחשב
 
 
 def sort_key(task):
@@ -70,3 +71,17 @@ def clean_due(date_text, time_text):
     day = clock.parse_day(date_text)
     at = clock.parse_hhmm(time_text)
     return (day.isoformat() if day else None), (at.strftime("%H:%M") if at else None)
+
+
+def clean_estimate(text):
+    # זמן משוער מטופס: רק ערך מהרשימה. ריק או לא תקין = בלי הערכה
+    try:
+        minutes = int(text)
+    except (TypeError, ValueError):
+        return None
+    return minutes if minutes in ESTIMATES else None
+
+
+def estimate_total(tasks):
+    # כמה זמן לוקחות כל המשימות הפתוחות שיש להן הערכה. עוזר "לראות" את הזמן (עיוורון זמן ב-ADHD)
+    return sum(task["estimate_minutes"] or 0 for task in tasks if task["status"] == "open")
