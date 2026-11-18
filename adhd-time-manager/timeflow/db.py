@@ -10,10 +10,13 @@ SCHEMA_FILE = Path(__file__).with_name("schema.sql")
 # גרסה 2: זמן משוער למשימה והצמדת פתק (רק עמודות חדשות)
 # גרסה 3: פרופיל אישי (שם בשתי שפות, יום הולדת, תמונה או אווטאר, משאלות)
 # גרסה 4: מצב תצוגה "לפי השעה" (בהיר ביום, כהה בערב ובלילה)
+# גרסה 5: פנייה בעברית (נקבה, זכר, לא מוגדר)
+# גרסה 6: זמן מסך (יעד יומי, דקות בפועל, שער הכוונה)
 MIGRATIONS = {1: SCHEMA_FILE, 2: SCHEMA_FILE.with_name("migration_002.sql"),
               3: SCHEMA_FILE.with_name("migration_003.sql"),
               4: SCHEMA_FILE.with_name("migration_004.sql"),
-              5: SCHEMA_FILE.with_name("migration_005.sql")}
+              5: SCHEMA_FILE.with_name("migration_005.sql"),
+              6: SCHEMA_FILE.with_name("migration_006.sql")}
 LATEST_VERSION = max(MIGRATIONS)
 
 

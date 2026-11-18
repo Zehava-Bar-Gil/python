@@ -7,7 +7,7 @@ from datetime import timedelta
 from flask import abort, current_app, g, redirect, request, session, url_for
 from itsdangerous import BadSignature, URLSafeTimedSerializer
 
-from . import clock
+from . import clock, screen_time
 
 CSRF_FIELD = "_csrf"
 # הסרה מדיוור בלחיצה אחת מתוכנת המייל: האסימון בכתובת הוא ההרשאה
@@ -26,7 +26,8 @@ CSP = "; ".join([
     "font-src https://fonts.gstatic.com",
     "img-src 'self' data:",
     "media-src 'self'",
-    "form-action 'self' https://accounts.google.com",
+    # טפסים נשלחים רק לאתר עצמו ול-Google. שער זמן המסך מעביר, אחרי השאלות, רק לרשתות שברשימה הקבועה
+    "form-action 'self' https://accounts.google.com " + " ".join(screen_time.app_origins()),
     # הנגן מציג את האתר בתוך iframe, ולכן רק האתר עצמו רשאי למסגר את הדפים (לא אתרים זרים)
     "frame-ancestors 'self'",
     "base-uri 'none'",

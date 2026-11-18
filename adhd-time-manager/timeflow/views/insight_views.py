@@ -3,7 +3,7 @@ from datetime import timedelta
 
 from flask import abort, current_app, g, redirect, request, url_for
 
-from .. import clock, focus_timer, journey, mailer, personalization_engine, security, ui
+from .. import clock, focus_timer, journey, mailer, personalization_engine, screen_time, security, ui
 from ..learning_data import build_history
 from . import back, bp, page, repo, say, tr, uid
 
@@ -22,6 +22,15 @@ def today_summary(user_id, day):
         "stats": focus_timer.day_stats(r, user_id, day),
         "points": r.journey_points(user_id, start, end),
     }
+
+
+def screen_week(user_id, today):
+    # זמן מסך: השבוע מול השבוע שעבר (14 ימים של נתונים)
+    r = repo()
+    first, last = (today - timedelta(days=13)).isoformat(), today.isoformat()
+    visits = r.screen_visits(user_id, first, last)
+    usage = screen_time.usage(r.screen_log(user_id, first, last), visits)
+    return screen_time.week_summary(usage, r.screen_limits(user_id), visits, today)
 
 
 def save_pulse_from_form(user_id, day):
@@ -48,6 +57,7 @@ def insights():
     pulse = r.get_pulse(user_id, now.date().isoformat())
     summary = today_summary(user_id, now.date())
     return page("zehava/insights.html", active="insights", insight=insight, overview=overview,
+                week=screen_week(user_id, now.date()),
                 pulse=pulse, pulse_open=settings["pulse_enabled"], faces=ui.PULSE_FACES,
                 summary=summary, focus_label=ui.minutes_label(t, summary["stats"]["focus_seconds"]),
                 journey=journey.position(r.journey_points(user_id)),

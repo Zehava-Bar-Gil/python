@@ -2395,6 +2395,50 @@ p.empty.glass { grid-column: 1 / -1; padding: 22px; }
 .pw-field:has(input:not(:placeholder-shown):valid) .pw-strong { display: inline; color: #3D8566; font-weight: 600; }
 :root[data-theme="dark"] .pw-field:has(input:not(:placeholder-shown):invalid) .pw-not-yet { color: #F0C27E; }
 :root[data-theme="dark"] .pw-field:has(input:not(:placeholder-shown):valid) .pw-strong { color: #8ED1B2; }
+
+/* ---------- זמן מסך ---------- */
+.screen-rows { display: grid; gap: 12px; margin: 0; padding: 0; list-style: none; }
+.screen-row { display: grid; gap: 6px; }
+.screen-row-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 12px; }
+.screen-row-head span { font-size: 13.5px; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+.tag-soft { margin-inline-start: 6px; padding: 1px 8px; border-radius: var(--radius-pill); font-size: 11.5px; background: var(--badge-bg, var(--surface-soft)); }
+.screen-bar { display: block; height: 8px; border-radius: var(--radius-pill); background: var(--track, var(--line)); overflow: hidden; }
+.screen-bar i { display: block; width: var(--w); height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--sky), var(--forest)); }
+/* מעבר ליעד: גוון שקיעה רך, לא אדום. אין כאן עונש */
+.screen-row.is-over .screen-bar i { background: linear-gradient(90deg, var(--sunset), #E3A857); }
+.gate-links { display: flex; flex-wrap: wrap; gap: 8px; margin: 4px 0 10px; }
+.screen-inputs { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; }
+.screen-inputs input { width: 100%; }
+.visit-list { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; font-size: 14px; }
+.visit-list li { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
+.visit-list time { font-variant-numeric: tabular-nums; color: var(--ink-soft); }
+.visit-list small { width: 100%; color: var(--ink-soft); }
+.visit-skip, .week-skip { display: inline-flex; align-items: center; gap: 6px; color: var(--forest-text); }
+/* השער */
+.gate-card { display: grid; gap: 14px; }
+.gate-reasons { display: grid; gap: 8px; margin: 0; padding: 0; border: 0; }
+.gate-reasons legend { margin-bottom: 8px; padding: 0; font-size: 20px; font-weight: 600; }
+.gate-choice { position: relative; display: block; cursor: pointer; }
+.gate-choice input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.gate-choice span { display: block; padding: 11px 16px; border-radius: 14px; border: 1px solid var(--field-border); background: var(--surface-soft); transition: background var(--motion-fast), border-color var(--motion-fast); }
+.gate-choice input:checked + span { border-color: var(--forest); background: var(--ok-bg, var(--surface)); font-weight: 600; }
+.gate-choice input:focus-visible + span { outline: 3px solid var(--focus-ring); outline-offset: 2px; }
+.gate-habit { display: none; align-items: center; gap: 6px; margin: -4px 0 0; color: var(--forest-text); font-size: 14px; }
+.gate-form:has(input[name="reason"][value="habit"]:checked) .gate-habit { display: flex; }
+/* הגרף השבועי: עמודה לכל יום, וקו מקווקו ביעד היומי */
+.week-chart { position: relative; display: grid; grid-template-columns: repeat(7, 1fr); align-items: end; gap: 8px; height: 150px; margin: 4px 0 0; padding: 0; list-style: none; }
+.week-chart li { display: grid; grid-template-rows: auto 1fr auto; height: 100%; text-align: center; }
+.week-bar { align-self: end; height: max(var(--h), 3%); border-radius: 8px 8px 3px 3px; background: linear-gradient(180deg, var(--sky), var(--forest)); }
+.week-chart li.is-over .week-bar { background: linear-gradient(180deg, var(--sunset), #E3A857); }
+.week-chart li.is-today small { font-weight: 700; color: var(--ink); }
+.week-num { font-size: 11px; color: var(--ink-soft); font-variant-numeric: tabular-nums; align-self: end; }
+.week-chart small { font-size: 11px; color: var(--ink-soft); }
+.week-num, .week-chart small { height: 17px; line-height: 17px; }
+/* --goal הוא מספר בין 0 ל-100: הגובה של היעד מתוך אזור העמודות (בלי המספר שמעל ושם היום שמתחת) */
+.week-chart .week-goal { position: absolute; inset-inline: 0; bottom: calc(17px + (100% - 34px) * var(--goal) / 100); height: 0; border-top: 2px dashed var(--forest-text); opacity: 0.7; pointer-events: none; }
+.week-trend { margin: 6px 0 0; font-weight: 600; }
+.icon-line { display: flex; align-items: flex-start; gap: 6px; }
+.icon-line .icon { flex: none; margin-top: 2px; }
 .auth-links { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 16px; margin: 0; font-size: 14px; }
 .login-card .flashes { margin: 0; }
 .login-card .lang-link { padding: 0; border: 0; background: none; cursor: pointer; justify-self: center; }

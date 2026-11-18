@@ -1,0 +1,120 @@
+{% extends "zehava/layout.html" %}
+{% from "zehava/macros.html" import icon, csrf, card_head with context %}
+
+{% block title %}TimeFlow · {{ t.screen_title }}{% endblock %}
+
+{% block content %}
+<header class="page-head">
+  <h1>{{ icon("phone", 30) }} {{ t.screen_title }}</h1>
+  <p>{{ t.screen_sub }}</p>
+</header>
+
+<div class="page-grid">
+  <div class="stack">
+    <!-- היום: כמה זמן, מתוך היעד. דיווח עצמי בלבד -->
+    <section class="card glass" id="today" aria-labelledby="screen-today">
+      {% call card_head("clock", t.screen_today, id="screen-today") %}<span class="label-self">{{ t.label_self }}</span>{% endcall %}
+      {% if not has_data %}<p class="muted">{{ t.screen_nothing_today }}</p>{% endif %}
+      <ul class="screen-rows">
+        {% for row in rows %}
+        <li class="screen-row{{ ' is-over' if row.over }}">
+          <div class="screen-row-head">
+            <strong lang="en" dir="ltr">{{ row.name }}</strong>
+            <span>{{ t.screen_of_goal.format(used=row.minutes, limit=row.limit) if row.limit else t.screen_no_goal.format(used=row.minutes) }}
+              {% if row.source == "planned" %}<small class="tag-soft">{{ t.screen_planned_tag }}</small>{% elif row.source == "logged" %}<small class="tag-soft">{{ t.screen_logged_tag }}</small>{% endif %}</span>
+          </div>
+          {% if row.limit %}
+          <span class="screen-bar" role="img" aria-label="{{ t.screen_of_goal.format(used=row.minutes, limit=row.limit) }}"><i style="--w: {{ row.percent }}%"></i></span>
+          {% if row.over %}<small class="muted">{{ t.screen_over }}</small>{% endif %}
+          {% endif %}
+        </li>
+        {% endfor %}
+      </ul>
+    </section>
+
+    <!-- שער הכוונה: נכנסים לרשת דרך כאן, ולא ישר מהאייקון -->
+    <section class="card glass" id="gate" aria-labelledby="screen-gate">
+      {% call card_head("focus", t.screen_gate_title, id="screen-gate") %}{% endcall %}
+      <p>{{ t.screen_gate_text }}</p>
+      <div class="gate-links">
+        {% for key, app in apps.items() %}
+        <a class="btn btn-soft" href="{{ url_for('zehava.screen_gate', app=key) }}">{{ icon("phone", 16) }}<span>{{ t.screen_open.format(name=app[0]) }}</span></a>
+        {% endfor %}
+      </div>
+      <p class="muted small icon-line">{{ icon("pin", 14) }} {{ t.screen_home_tip }}</p>
+    </section>
+
+    {% if visits %}
+    <section class="card glass" aria-labelledby="screen-visits">
+      {% call card_head("steps", t.screen_visits_title, id="screen-visits") %}{% endcall %}
+      <ul class="visit-list">
+        {% for visit in visits[:8] %}
+        <li>
+          <time>{{ visit.time }}</time>
+          <strong lang="en" dir="ltr">{{ apps[visit.app][0] }}</strong>
+          {% if visit.opened %}
+          <span>{{ t.gate_reasons[visit.reason] }} · {{ visit.minutes }} {{ t.min }}</span>
+          {% if visit.note %}<small dir="auto">{{ visit.note }}</small>{% endif %}
+          {% else %}
+          <span class="visit-skip">{{ icon("leaf", 14) }} {{ t.screen_visit_skipped }}</span>
+          {% endif %}
+        </li>
+        {% endfor %}
+      </ul>
+    </section>
+    {% endif %}
+  </div>
+
+  <div class="stack">
+    <!-- רישום דקות בפועל, למשל מזמן מסך בטלפון -->
+    <section class="card glass" id="log" aria-labelledby="screen-log">
+      {% call card_head("edit", t.screen_log_title, id="screen-log") %}{% endcall %}
+      <p class="muted small">{{ t.screen_log_text }}</p>
+      <form class="form-grid" action="{{ url_for('zehava.screen_log') }}" method="post">
+        {{ csrf() }}
+        <fieldset class="seg">
+          <legend>{{ t.screen_log_day }}</legend>
+          <label class="seg-item"><input type="radio" name="day" value="today" checked><span>{{ t.screen_day_today }}</span></label>
+          <label class="seg-item"><input type="radio" name="day" value="yesterday"><span>{{ t.screen_day_yesterday }}</span></label>
+        </fieldset>
+        <div class="screen-inputs">
+          {% for row in rows %}
+          <label class="field"><span lang="en" dir="ltr">{{ row.name }}</span>
+            <input type="number" name="min_{{ row.app }}" min="0" max="1440" inputmode="numeric" placeholder="{{ t.screen_minutes }}"
+                   {% if row.app in logged_today %}value="{{ logged_today[row.app] }}"{% endif %}>
+          </label>
+          {% endfor %}
+        </div>
+        <button type="submit" class="btn btn-primary">{{ icon("check", 16) }}<span>{{ t.screen_log_save }}</span></button>
+      </form>
+    </section>
+
+    <!-- יעד יומי לכל רשת. ריק = בלי מעקב -->
+    <details class="card glass more" id="goals" {% if not limits %}open{% endif %}>
+      <summary>{{ icon("flag", 16) }} {{ t.screen_goals_title }}</summary>
+      <p class="muted small">{{ t.screen_goals_text }}</p>
+      <form class="form-grid" action="{{ url_for('zehava.screen_limits') }}" method="post">
+        {{ csrf() }}
+        <div class="screen-inputs">
+          {% for key, app in apps.items() %}
+          <label class="field"><span lang="en" dir="ltr">{{ app[0] }}</span>
+            <input type="number" name="limit_{{ key }}" min="5" max="600" inputmode="numeric" placeholder="{{ t.screen_minutes }}"
+                   {% if key in limits %}value="{{ limits[key] }}"{% endif %}>
+          </label>
+          {% endfor %}
+        </div>
+        <button type="submit" class="btn btn-primary">{{ icon("check", 16) }}<span>{{ t.screen_log_save }}</span></button>
+      </form>
+    </details>
+
+    <!-- חסימה אמיתית: רק בכלים של הטלפון עצמו -->
+    <details class="card glass more" id="block">
+      <summary>{{ icon("lock", 16) }} {{ t.screen_block_title }}</summary>
+      <p>{{ t.screen_block_text }}</p>
+      <ul class="plain">
+        {% for line in t.screen_block_tools %}<li>{{ line }}</li>{% endfor %}
+      </ul>
+    </details>
+  </div>
+</div>
+{% endblock %}

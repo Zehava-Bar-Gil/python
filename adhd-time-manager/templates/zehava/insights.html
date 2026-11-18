@@ -104,6 +104,30 @@
       {% endif %}
     </section>
 
+    <!-- זמן מסך: השבוע מול השבוע שעבר. דיווח עצמי, בלי ציון ובלי עונש -->
+    <section class="card glass" id="screen-week" aria-labelledby="week-title">
+      {% call card_head("phone", t.week_title, id="week-title") %}<span class="label-self">{{ t.label_self }}</span>{% endcall %}
+      {% if week.trend == "empty" %}
+      <p class="muted">{{ t.week_empty }}</p>
+      {% else %}
+      <ol class="week-chart" aria-label="{{ t.week_title }}"{% if week.goal %} style="--goal: {{ week.goal_height }}"{% endif %}>
+        {% for bar in week.bars %}
+        <li class="{{ 'is-over' if bar.over }}{{ ' is-today' if loop.last }}" style="--h: {{ bar.height }}%">
+          <span class="week-num" aria-hidden="true">{{ bar.minutes }}</span>
+          <span class="week-bar"></span>
+          <small class="sr-only">{{ t.weekdays[bar.weekday] }} {{ bar.day.strftime('%d/%m') }}: {{ bar.minutes }} {{ t.min }}</small>
+          <small aria-hidden="true">{{ t.weekdays[bar.weekday] }}</small>
+        </li>
+        {% endfor %}
+        {% if week.goal %}<li class="week-goal" aria-hidden="true"></li>{% endif %}
+      </ol>
+      <p class="week-trend">{{ t['week_' ~ week.trend].format(diff=week.diff) }}</p>
+      <p class="muted small">{{ t.week_total.format(total=week.total, avg=week.average) }}{% if week.goal %} · {{ t.week_goal_line.format(goal=week.goal) }}{% endif %}</p>
+      {% endif %}
+      {% if week.skipped %}<p class="week-skip">{{ icon("leaf", 15) }} {{ t.week_skipped_one if week.skipped == 1 else t.week_skipped.format(n=week.skipped) }}</p>{% endif %}
+      <a class="text-link" href="{{ url_for('zehava.screen') }}">{{ icon("phone", 15) }} {{ t.week_open }}</a>
+    </section>
+
     <section class="card glass quote-card">
       <p class="handwriting">{{ t.journey_quote }} ♡</p>
     </section>

@@ -1,0 +1,42 @@
+{% extends "zehava/layout.html" %}
+{% from "zehava/macros.html" import icon, csrf, card_head with context %}
+
+{% block title %}TimeFlow · {{ t.gate_title.format(name=app_name) }}{% endblock %}
+
+{% block content %}
+<!-- שער הכוונה: רגע של עצירה לפני רשת חברתית. בלי JavaScript, בלי שעון שרץ ובלי עונש -->
+<section class="card glass narrow gate-card" aria-labelledby="gate-title">
+  {% call card_head("focus", t.gate_title.format(name=app_name), level=1, id="gate-title") %}{% endcall %}
+  <p class="muted small">{{ t.gate_so_far }}: {{ t.screen_of_goal.format(used=used, limit=limit) if limit else t.screen_no_goal.format(used=used) }}</p>
+
+  <form class="form-grid gate-form" action="{{ url_for('zehava.screen_gate', app=app) }}" method="post">
+    {{ csrf() }}
+    <fieldset class="gate-reasons">
+      <legend>{{ t.gate_why }}</legend>
+      {% for reason in reasons %}
+      <label class="gate-choice"><input type="radio" name="reason" value="{{ reason }}" required><span>{{ t.gate_reasons[reason] }}</span></label>
+      {% endfor %}
+    </fieldset>
+    {# כשבוחרים "סתם, מתוך הרגל" מופיעה הצעה עדינה (CSS בלבד, :has) #}
+    <p class="gate-habit">{{ icon("leaf", 15) }} {{ t.gate_habit_hint }}</p>
+
+    <fieldset class="seg">
+      <legend>{{ t.gate_how_long }}</legend>
+      {% for minutes in choices %}
+      <label class="seg-item"><input type="radio" name="minutes" value="{{ minutes }}" required{% if loop.first %} checked{% endif %}><span>{{ minutes }} {{ t.min }}</span></label>
+      {% endfor %}
+    </fieldset>
+
+    <label class="field"><span>{{ t.gate_note }} <small>({{ t.optional }})</small></span>
+      <input type="text" name="note" maxlength="100" dir="auto" autocomplete="off">
+    </label>
+
+    <p class="muted small icon-line">{{ icon("timer", 14) }} {{ t.gate_tip }}</p>
+
+    <div class="choice-row">
+      <button type="submit" class="btn btn-primary flip">{{ icon("next", 16) }}<span>{{ t.gate_go.format(name=app_name) }}</span></button>
+      <button type="submit" name="skip" value="1" class="btn btn-ghost" formnovalidate>{{ icon("leaf", 16) }}<span>{{ t.gate_skip }}</span></button>
+    </div>
+  </form>
+</section>
+{% endblock %}

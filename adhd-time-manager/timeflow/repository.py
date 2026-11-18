@@ -549,6 +549,39 @@ class Repository:
                           (task_id, event_id, user_id))
         return cur.rowcount == 1
 
+    # ---------- זמן מסך ----------
+    def screen_limits(self, user_id):
+        # {רשת: יעד יומי בדקות}. רק רשתות שבמעקב
+        rows = self._all("SELECT app, minutes FROM screen_limits WHERE user_id = ?", (user_id,))
+        return {row["app"]: row["minutes"] for row in rows}
+
+    def set_screen_limit(self, user_id, app, minutes):
+        # None = להפסיק לעקוב אחרי הרשת (היעד נמחק, הנתונים שנרשמו נשארים)
+        if minutes is None:
+            self._write("DELETE FROM screen_limits WHERE user_id = ? AND app = ?", (user_id, app))
+            return
+        self._write("INSERT INTO screen_limits (user_id, app, minutes, updated_at) VALUES (?, ?, ?, ?)"
+                    " ON CONFLICT (user_id, app) DO UPDATE SET minutes = excluded.minutes, updated_at = excluded.updated_at",
+                    (user_id, app, minutes, clock.now_iso()))
+
+    def save_screen_log(self, user_id, app, day, minutes):
+        self._write("INSERT INTO screen_log (user_id, app, day, minutes, updated_at) VALUES (?, ?, ?, ?, ?)"
+                    " ON CONFLICT (user_id, app, day) DO UPDATE SET minutes = excluded.minutes, updated_at = excluded.updated_at",
+                    (user_id, app, day, minutes, clock.now_iso()))
+
+    def screen_log(self, user_id, first_day, last_day):
+        return self._all("SELECT app, day, minutes FROM screen_log WHERE user_id = ? AND day BETWEEN ? AND ?",
+                         (user_id, first_day, last_day))
+
+    def add_screen_visit(self, user_id, app, day, reason, minutes, note="", opened=True):
+        self._write("INSERT INTO screen_visits (user_id, app, day, reason, minutes, note, opened, created_at)"
+                    " VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                    (user_id, app, day, reason, minutes, note, 1 if opened else 0, clock.now_iso()))
+
+    def screen_visits(self, user_id, first_day, last_day):
+        return self._all("SELECT * FROM screen_visits WHERE user_id = ? AND day BETWEEN ? AND ? ORDER BY id",
+                         (user_id, first_day, last_day))
+
     # ---------- פרטיות: ייצוא ומחיקה ----------
     def export_user_data(self, user_id):
         user = self.get_user(user_id)
@@ -556,8 +589,11 @@ class Repository:
         data = {"user": user, "settings": self.get_settings(user_id)}
         for table in ("tasks", "task_steps", "notes", "focus_sessions", "journey_events", "daily_pulse",
                       "insights", "sound_feedback", "snooze_entries", "ai_requests", "email_log", "calendar_events",
-                      "birthday_wishes"):
+                      "birthday_wishes", "screen_visits"):
             data[table] = self._all(f"SELECT * FROM {table} WHERE user_id = ? ORDER BY id", (user_id,))
+        # בטבלאות האלה אין עמודת id, והסדר הוא סדר ההוספה
+        for table in ("screen_limits", "screen_log"):
+            data[table] = self._all(f"SELECT * FROM {table} WHERE user_id = ? ORDER BY rowid", (user_id,))
         data["avatar_photo"] = {"saved": self.get_avatar_photo(user_id) is not None}   # התמונה עצמה לא נכנסת ל-JSON
         account = self.get_google_account(user_id)
         data["google_calendar"] = {"connected": bool(account),

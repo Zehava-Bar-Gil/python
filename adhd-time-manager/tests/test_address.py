@@ -15,7 +15,7 @@ class AddressTests(TimeFlowTestCase):
 
     def test_new_users_start_undefined(self):
         self.assertEqual(self.repo().get_settings(self.user)["address"], "x")
-        self.assertEqual(db.LATEST_VERSION, 5)
+        self.assertGreaterEqual(db.LATEST_VERSION, 5)
 
     def test_settings_offers_three_choices(self):
         html = self.html(self.client_.get("/zehava/settings"))

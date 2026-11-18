@@ -149,4 +149,4 @@ def page(template, active=None, **ctx):
 
 # הקבצים נטענים בסוף, אחרי ש-bp כבר קיים, כדי שהנתיבים שלהם יירשמו עליו
 from . import (auth_views, calendar_views, home_views, insight_views, note_views,  # noqa: E402,F401
-               settings_views, snooze_views, task_views, timer_views)
+               screen_views, settings_views, snooze_views, task_views, timer_views)
